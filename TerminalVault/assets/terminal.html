@@ -1,0 +1,1511 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.min.css">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#1a1a2e; overflow:hidden; height:100vh; }
+#terminal { height:100vh; padding:4px; }
+.xterm { height:100%; }
+.xterm-viewport { scrollbar-width:thin; }
+</style>
+</head>
+<body>
+<div id="terminal"></div>
+<script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xterm-addon-web-links@0.9.0/lib/xterm-addon-web-links.min.js"></script>
+<script>
+const term = new Terminal({
+  cursorBlink: true,
+  cursorStyle: 'block',
+  fontSize: 14,
+  fontFamily: 'Menlo, Monaco, "Courier New", monospace',
+  theme: {
+    background: '#1a1a2e',
+    foreground: '#e0e0e0',
+    cursor: '#00ff41',
+    selectionBackground: '#335566',
+    black: '#1a1a2e', red: '#e74c3c', green: '#2ecc71', yellow: '#f1c40f',
+    blue: '#3498db', magenta: '#9b59b6', cyan: '#1abc9c', white: '#e0e0e0',
+    brightBlack: '#555', brightRed: '#ff6b6b', brightGreen: '#69db7c',
+    brightYellow: '#ffd43b', brightBlue: '#74b9ff', brightMagenta: '#da77f2',
+    brightCyan: '#38d9a9', brightWhite: '#fff'
+  },
+  allowTransparency: false,
+  scrollback: 10000,
+  bellStyle: 'none'
+});
+
+const fitAddon = new FitAddon.FitAddon();
+term.loadAddon(fitAddon);
+term.loadAddon(new WebLinksAddon.WebLinksAddon());
+term.open(document.getElementById('terminal'));
+fitAddon.fit();
+
+window.addEventListener('resize', () => fitAddon.fit());
+
+// ============================================================
+// VIRTUAL FILE SYSTEM
+// ============================================================
+class VirtualFileSystem {
+  constructor() {
+    this.cwd = '/home/user';
+    this.root = {
+      name: '', type: 'dir', children: {}, parent: null,
+      created: Date.now(), mode: 'rwxr-xr-x', owner: 'user', group: 'user'
+    };
+    this.initStructure();
+    this.loadState();
+  }
+
+  loadState() {
+    try {
+      const saved = localStorage.getItem('terminal_fs');
+      if (saved) {
+        const data = JSON.parse(saved);
+        this.root = data.root;
+        this.cwd = data.cwd || '/home/user';
+      }
+    } catch(e) {}
+  }
+
+  saveState() {
+    try {
+      localStorage.setItem('terminal_fs', JSON.stringify({ root: this.root, cwd: this.cwd }));
+    } catch(e) {}
+  }
+
+  initStructure() {
+    const dirs = [
+      '/home', '/home/user', '/home/user/Documents', '/home/user/Downloads',
+      '/home/user/Pictures', '/home/user/Music', '/home/user/Videos',
+      '/tmp', '/var', '/var/log', '/var/www', '/etc', '/bin', '/usr', '/usr/bin',
+      '/usr/local', '/usr/local/bin', '/lib', '/opt', '/mnt', '/media',
+      '/boot', '/srv', '/root', '/sys', '/dev', '/proc'
+    ];
+    dirs.forEach(d => this.mkdirp(d));
+    this.writeFile('/home/user/README.txt', `Welcome to TerminalVault Linux!\nType 'help' for available commands.\n`);
+    this.writeFile('/etc/hostname', 'terminalvault\n');
+    this.writeFile('/etc/os-release', 'NAME="TerminalVault"\nVERSION="1.0"\nID=terminalvault\n');
+    this.mkdirp('/home/user/.config');
+    this.writeFile('/home/user/.bashrc', 'alias ll="ls -la"\nalias la="ls -la"\nexport PS1="\\u@\\h:\\w$ "\n');
+    this.writeFile('/home/user/.profile', 'export PATH=$PATH:/usr/local/bin\n');
+  }
+
+  mkdirp(path) {
+    const parts = this.resolve(path).split('/').filter(Boolean);
+    let node = this.root;
+    for (const p of parts) {
+      if (!node.children[p]) {
+        node.children[p] = { name: p, type: 'dir', children: {}, parent: node, created: Date.now(), mode: 'rwxr-xr-x', owner: 'user', group: 'user' };
+      }
+      node = node.children[p];
+    }
+    this.saveState();
+    return node;
+  }
+
+  resolve(path) {
+    if (!path || path === '') return this.cwd;
+    if (path.startsWith('/')) return this.normalize(path);
+    return this.normalize(this.cwd + '/' + path);
+  }
+
+  normalize(p) {
+    const parts = p.split('/').filter(Boolean);
+    const result = [];
+    for (const part of parts) {
+      if (part === '.') continue;
+      if (part === '..') { result.pop(); continue; }
+      result.push(part);
+    }
+    return '/' + result.join('/');
+  }
+
+  getNode(path) {
+    const parts = this.resolve(path).split('/').filter(Boolean);
+    let node = this.root;
+    for (const p of parts) {
+      if (!node.children || !node.children[p]) return null;
+      node = node.children[p];
+    }
+    return node;
+  }
+
+  isDir(path) {
+    const node = this.getNode(path);
+    return node && node.type === 'dir';
+  }
+
+  isFile(path) {
+    const node = this.getNode(path);
+    return node && node.type === 'file';
+  }
+
+  readFile(path) {
+    const node = this.getNode(path);
+    if (!node) return null;
+    if (node.type !== 'file') return null;
+    return node.content || '';
+  }
+
+  writeFile(path, content) {
+    const parts = this.resolve(path).split('/').filter(Boolean);
+    const fileName = parts.pop();
+    let node = this.root;
+    for (const p of parts) {
+      if (!node.children[p]) {
+        node.children[p] = { name: p, type: 'dir', children: {}, parent: node, created: Date.now(), mode: 'rwxr-xr-x', owner: 'user', group: 'user' };
+      }
+      node = node.children[p];
+    }
+    try {
+      node.children[fileName] = {
+        name: fileName, type: 'file', content: content || '',
+        parent: node, created: Date.now(), modified: Date.now(),
+        size: (content || '').length, mode: 'rw-r--r--', owner: 'user', group: 'user'
+      };
+      this.saveState();
+      return true;
+    } catch(e) { return false; }
+  }
+
+  deleteFile(path) {
+    const parts = this.resolve(path).split('/').filter(Boolean);
+    const name = parts.pop();
+    let node = this.root;
+    for (const p of parts) {
+      if (!node.children[p]) return false;
+      node = node.children[p];
+    }
+    if (node.children[name]) {
+      delete node.children[name];
+      this.saveState();
+      return true;
+    }
+    return false;
+  }
+
+  deleteDir(path) {
+    const parts = this.resolve(path).split('/').filter(Boolean);
+    const name = parts.pop();
+    let node = this.root;
+    for (const p of parts) {
+      if (!node.children[p]) return false;
+      node = node.children[p];
+    }
+    if (node.children[name] && node.children[name].type === 'dir') {
+      if (Object.keys(node.children[name].children).length > 0) return false;
+      delete node.children[name];
+      this.saveState();
+      return true;
+    }
+    return false;
+  }
+
+  listDir(path) {
+    const node = this.getNode(path);
+    if (!node || node.type !== 'dir') return null;
+    return Object.entries(node.children || {}).map(([name, n]) => ({
+      name, type: n.type, size: n.size || 0, mode: n.mode || 'rw-r--r--',
+      owner: n.owner || 'user', group: n.group || 'user',
+      created: n.created || Date.now(), modified: n.modified || n.created || Date.now(),
+      children: n.type === 'dir' ? Object.keys(n.children).length : undefined
+    }));
+  }
+
+  copy(src, dest) {
+    const content = this.readFile(src);
+    if (content !== null) return this.writeFile(dest, content);
+    return false;
+  }
+
+  move(src, dest) {
+    if (this.copy(src, dest)) { this.deleteFile(src); return true; }
+    return false;
+  }
+
+  getPath(node) {
+    const parts = [];
+    let current = node;
+    while (current && current.name) {
+      parts.unshift(current.name);
+      current = current.parent;
+    }
+    return '/' + parts.join('/');
+  }
+
+  find(pattern, path) {
+    const results = [];
+    const search = (p) => {
+      const entries = this.listDir(p) || [];
+      for (const e of entries) {
+        const fullPath = p === '/' ? '/' + e.name : p + '/' + e.name;
+        if (e.name.includes(pattern) || fullPath.includes(pattern)) results.push(fullPath);
+        if (e.type === 'dir') search(fullPath);
+      }
+    };
+    search(path || this.cwd);
+    return results;
+  }
+
+  du(path) {
+    let total = 0;
+    const walk = (p) => {
+      const entries = this.listDir(p) || [];
+      for (const e of entries) {
+        const fullPath = p === '/' ? '/' + e.name : p + '/' + e.name;
+        if (e.type === 'file') total += e.size || 0;
+        else walk(fullPath);
+      }
+    };
+    walk(path);
+    return total;
+  }
+}
+
+// ============================================================
+// COMMAND ENGINE
+// ============================================================
+class CommandEngine {
+  constructor(term, vfs) {
+    this.term = term;
+    this.vfs = vfs;
+    this.history = [];
+    this.historyIndex = -1;
+    this.aliases = {};
+    this.variables = { PATH: '/usr/local/bin:/usr/bin:/bin', HOME: '/home/user', USER: 'user', SHELL: '/bin/bash', TERM: 'xterm-256color' };
+    this.currentInput = '';
+    this.running = false;
+    this.commands = this.initCommands();
+  }
+
+  initCommands() {
+    const self = this;
+    return {
+      help(args) { self.printHelp(); return 0; },
+      clear(args) { self.term.clear(); return 0; },
+      exit(args) { self.println('logout'); return 0; },
+      
+      pwd(args) { self.println(self.vfs.cwd); return 0; },
+      
+      cd(args) {
+        const target = args[0] || self.variables.HOME;
+        if (target === '-') {
+          if (self._oldpwd) {
+            const tmp = self._oldpwd;
+            self._oldpwd = self.vfs.cwd;
+            self.vfs.cwd = tmp;
+          }
+          return 0;
+        }
+        const resolved = self.vfs.resolve(target);
+        if (self.vfs.isDir(resolved)) {
+          self._oldpwd = self.vfs.cwd;
+          self.vfs.cwd = resolved;
+          return 0;
+        }
+        self.println(`cd: ${target}: No such directory`);
+        return 1;
+      },
+
+      ls(args) {
+        let target = self.vfs.cwd;
+        let showAll = false;
+        let long = false;
+        let human = false;
+        
+        for (const a of args) {
+          if (a === '-la' || a === '-al') { long = true; showAll = true; }
+          else if (a === '-l') long = true;
+          else if (a === '-a') showAll = true;
+          else if (a === '-lh' || a === '-hl') { long = true; human = true; }
+          else target = self.vfs.resolve(a);
+        }
+        
+        const entries = self.vfs.listDir(target);
+        if (!entries) { self.println(`ls: cannot access '${target}': No such file or directory`); return 1; }
+        
+        if (long) {
+          let total = 0;
+          const filtered = entries.filter(e => showAll || !e.name.startsWith('.'));
+          filtered.forEach(e => {
+            const perms = e.mode.padEnd(10);
+            const links = '1';
+            const owner = e.owner.padEnd(6);
+            const group = e.group.padEnd(6);
+            const size = human ? self.humanSize(e.size) : String(e.size).padStart(5);
+            const date = new Date(e.modified || e.created).toISOString().replace(/T.*/, '');
+            self.println(`${e.type === 'dir' ? 'd' : '-'}${perms} ${links} ${owner} ${group} ${size} ${date} ${e.name}${e.type === 'dir' ? '/' : ''}`);
+          });
+        } else {
+          const filtered = entries.filter(e => showAll || !e.name.startsWith('.'));
+          const cols = Math.max(1, Math.floor((self.term.cols || 80) / 20));
+          let line = '';
+          filtered.forEach((e, i) => {
+            const name = e.name + (e.type === 'dir' ? '/' : '');
+            line += name.padEnd(20);
+            if ((i + 1) % cols === 0) { self.println(line); line = ''; }
+          });
+          if (line) self.println(line);
+        }
+        return 0;
+      },
+
+      echo(args) { self.println(args.join(' ')); return 0; },
+
+      cat(args) {
+        if (args.length === 0) { self.println(''); return 0; }
+        for (const f of args) {
+          const content = self.vfs.readFile(f);
+          if (content === null) { self.println(`cat: ${f}: No such file`); return 1; }
+          self.print(content.endsWith('\n') ? content.substring(0, content.length - 1) : content);
+        }
+        return 0;
+      },
+
+      touch(args) {
+        for (const f of args) {
+          const path = self.vfs.resolve(f);
+          if (self.vfs.isFile(path)) {
+            const content = self.vfs.readFile(path);
+            self.vfs.writeFile(path, content);
+          } else if (!self.vfs.isDir(self.vfs.resolve(f).split('/').slice(0,-1).join('/') || '/')) {
+            self.println(`touch: cannot touch '${f}': No such file or directory`);
+          } else {
+            self.vfs.writeFile(path, '');
+          }
+        }
+        return 0;
+      },
+
+      mkdir(args) {
+        let parent = false;
+        const targets = [];
+        for (const a of args) {
+          if (a === '-p') parent = true;
+          else targets.push(a);
+        }
+        for (const d of targets) {
+          const path = self.vfs.resolve(d);
+          if (parent) { self.vfs.mkdirp(path); }
+          else {
+            const parts = path.split('/').filter(Boolean);
+            const name = parts.pop();
+            const parentPath = '/' + parts.join('/');
+            const parentNode = self.vfs.getNode(parentPath);
+            if (!parentNode) { self.println(`mkdir: cannot create directory '${d}': No such file or directory`); continue; }
+            if (parentNode.children[name]) { self.println(`mkdir: cannot create directory '${d}': File exists`); continue; }
+            parentNode.children[name] = { name, type: 'dir', children: {}, parent: parentNode, created: Date.now(), mode: 'rwxr-xr-x', owner: 'user', group: 'user' };
+            self.vfs.saveState();
+          }
+        }
+        return 0;
+      },
+
+      rm(args) {
+        let recursive = false;
+        let force = false;
+        const targets = [];
+        for (const a of args) {
+          if (a === '-r' || a === '-rf' || a === '-fr') recursive = true;
+          if (a === '-f' || a === '-rf' || a === '-fr') force = true;
+          else if (!a.startsWith('-')) targets.push(a);
+        }
+        for (const t of targets) {
+          const path = self.vfs.resolve(t);
+          if (self.vfs.isFile(path)) {
+            if (!force) { self.println(`rm: remove regular file '${t}'? (use -f to force)`); }
+            self.vfs.deleteFile(path);
+          } else if (self.vfs.isDir(path)) {
+            if (recursive) {
+              const entries = self.vfs.listDir(path);
+              if (entries && entries.length > 0) {
+                if (!force) { self.println(`rm: remove directory '${t}'? (use -rf to force)`); return 1; }
+              }
+              self.vfs.deleteDir(path);
+              if (!self.vfs.isDir(path)) continue;
+              const parts = path.split('/').filter(Boolean);
+              const name = parts.pop();
+              const pp = '/' + parts.join('/');
+              const parent = self.vfs.getNode(pp);
+              if (parent) { delete parent.children[name]; self.vfs.saveState(); }
+            } else {
+              self.println(`rm: cannot remove '${t}': Is a directory`);
+            }
+          } else {
+            if (!force) self.println(`rm: cannot remove '${t}': No such file or directory`);
+          }
+        }
+        return 0;
+      },
+
+      rmdir(args) {
+        for (const d of args) {
+          const path = self.vfs.resolve(d);
+          if (!self.vfs.isDir(path)) { self.println(`rmdir: failed to remove '${d}': No such file or directory`); continue; }
+          const entries = self.vfs.listDir(path);
+          if (entries && entries.some(e => !e.name.startsWith('.'))) {
+            self.println(`rmdir: failed to remove '${d}': Directory not empty`);
+            continue;
+          }
+          self.vfs.deleteDir(path);
+        }
+        return 0;
+      },
+
+      cp(args) {
+        if (args.length < 2) { self.println('cp: missing file operand'); return 1; }
+        const src = args[0], dest = args[1];
+        const srcPath = self.vfs.resolve(src);
+        const destPath = self.vfs.resolve(dest);
+        if (!self.vfs.isFile(srcPath)) { self.println(`cp: cannot stat '${src}': No such file`); return 1; }
+        self.vfs.copy(srcPath, destPath);
+        return 0;
+      },
+
+      mv(args) {
+        if (args.length < 2) { self.println('mv: missing file operand'); return 1; }
+        const src = args[0], dest = args[1];
+        const srcPath = self.vfs.resolve(src);
+        const destPath = self.vfs.resolve(dest);
+        if (!self.vfs.isFile(srcPath)) { self.println(`mv: cannot stat '${src}': No such file`); return 1; }
+        self.vfs.move(srcPath, destPath);
+        return 0;
+      },
+
+      head(args) {
+        let n = 10;
+        const files = [];
+        for (let i = 0; i < args.length; i++) {
+          if (args[i] === '-n' && i + 1 < args.length) { n = parseInt(args[++i]) || 10; }
+          else files.push(args[i]);
+        }
+        for (const f of files) {
+          const content = self.vfs.readFile(f);
+          if (content === null) { self.println(`head: ${f}: No such file`); continue; }
+          const lines = content.split('\n').slice(0, n);
+          self.println(lines.join('\n'));
+        }
+        return 0;
+      },
+
+      tail(args) {
+        let n = 10;
+        const files = [];
+        for (let i = 0; i < args.length; i++) {
+          if (args[i] === '-n' && i + 1 < args.length) { n = parseInt(args[++i]) || 10; }
+          else files.push(args[i]);
+        }
+        for (const f of files) {
+          const content = self.vfs.readFile(f);
+          if (content === null) { self.println(`tail: ${f}: No such file`); continue; }
+          const lines = content.split('\n');
+          self.println(lines.slice(Math.max(0, lines.length - n)).join('\n'));
+        }
+        return 0;
+      },
+
+      wc(args) {
+        for (const f of args) {
+          const content = self.vfs.readFile(f);
+          if (content === null) { self.println(`wc: ${f}: No such file`); continue; }
+          const lines = content.split('\n').length;
+          const words = content.split(/\s+/).filter(Boolean).length;
+          const chars = content.length;
+          self.println(`${lines} ${words} ${chars} ${f}`);
+        }
+        return 0;
+      },
+
+      grep(args) {
+        if (args.length < 1) { self.println('grep: missing pattern'); return 1; }
+        let pattern = args[0];
+        let ignoreCase = false;
+        let filePattern = null;
+        let idx = 0;
+        if (args[idx] === '-i') { ignoreCase = true; idx++; }
+        pattern = args[idx++];
+        const files = args.slice(idx);
+        for (const f of (files.length ? files : [self.vfs.cwd])) {
+          const content = files.length ? self.vfs.readFile(f) : null;
+          if (content === null && files.length) { continue; }
+          const lines = (content || '').split('\n');
+          lines.forEach((line, i) => {
+            const test = ignoreCase ? line.toLowerCase() : line;
+            const pat = ignoreCase ? pattern.toLowerCase() : pattern;
+            if (test.includes(pat)) {
+              self.println(`${files.length > 1 ? f + ':' : ''}${line}`);
+            }
+          });
+        }
+        return 0;
+      },
+
+      find(args) {
+        const path = args[0] ? self.vfs.resolve(args[0]) : self.vfs.cwd;
+        const name = args[1] && args[1] !== '-name' ? args[1] : args[2];
+        if (!name) { self.println('find: missing operand'); return 1; }
+        const results = self.vfs.find(name, path);
+        results.forEach(r => self.println(r));
+        return 0;
+      },
+
+      ps(args) {
+        self.println('  PID TTY          TIME CMD');
+        self.println('    1 pts/0    00:00:05 bash');
+        self.println('  123 pts/0    00:00:00 ps');
+        return 0;
+      },
+
+      kill(args) {
+        if (!args[0]) { self.println('kill: usage: kill [-s sigspec] pid'); return 1; }
+        self.println(`[1]+  Terminated    process ${args[0]}`);
+        return 0;
+      },
+
+      whoami(args) { self.println(self.variables.USER); return 0; },
+      id(args) { self.println(`uid=1000(${self.variables.USER}) gid=1000(${self.variables.USER}) groups=1000(${self.variables.USER})`); return 0; },
+
+      uname(args) {
+        if (args[0] === '-a') self.println('Linux terminalvault 6.1.0-TerminalVault #1 SMP PREEMPT_DYNAMIC aarch64 GNU/Linux');
+        else self.println('Linux');
+        return 0;
+      },
+
+      date(args) { self.println(new Date().toString()); return 0; },
+
+      cal(args) {
+        const now = new Date();
+        const month = now.getMonth();
+        const year = now.getFullYear();
+        const firstDay = new Date(year, month, 1).getDay();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+        self.println(`      ${months[month]} ${year}`);
+        self.println('Su Mo Tu We Th Fr Sa');
+        let line = '   '.repeat(firstDay);
+        for (let d = 1; d <= daysInMonth; d++) {
+          line += String(d).padStart(2) + ' ';
+          if ((d + firstDay) % 7 === 0) { self.println(line); line = ''; }
+        }
+        if (line) self.println(line);
+        return 0;
+      },
+
+      history(args) {
+        const start = Math.max(0, self.history.length - 100);
+        for (let i = start; i < self.history.length; i++) {
+          self.println(`${String(i + 1).padStart(5)}  ${self.history[i]}`);
+        }
+        return 0;
+      },
+
+      alias(args) {
+        if (args.length === 0) {
+          Object.entries(self.aliases).forEach(([k,v]) => self.println(`alias ${k}='${v}'`));
+          return 0;
+        }
+        const eqIdx = args[0].indexOf('=');
+        if (eqIdx > 0) {
+          const name = args[0].substring(0, eqIdx);
+          const val = args[0].substring(eqIdx + 1).replace(/^['"]|['"]$/g, '');
+          self.aliases[name] = val;
+        }
+        return 0;
+      },
+
+      export(args) {
+        for (const a of args) {
+          const eqIdx = a.indexOf('=');
+          if (eqIdx > 0) {
+            self.variables[a.substring(0, eqIdx)] = a.substring(eqIdx + 1);
+          }
+        }
+        return 0;
+      },
+
+      which(args) {
+        if (!args[0]) return 1;
+        if (self.commands[args[0]]) { self.println(`/usr/bin/${args[0]}`); return 0; }
+        self.println(`${args[0]} not found`);
+        return 1;
+      },
+
+      chmod(args) { self.println(''); return 0; },
+
+      sort(args) {
+        if (args.length === 0) return 0;
+        const content = self.vfs.readFile(args[0]);
+        if (content === null) { self.println(`sort: ${args[0]}: No such file`); return 1; }
+        self.println(content.split('\n').filter(Boolean).sort().join('\n'));
+        return 0;
+      },
+
+      df(args) {
+        self.println('Filesystem     1K-blocks    Used Available Use% Mounted on');
+        self.println('/dev/sda1       30720000 5120000  25600000  17% /');
+        return 0;
+      },
+
+      du(args) {
+        const target = args[0] ? self.vfs.resolve(args[0]) : self.vfs.cwd;
+        const size = self.vfs.du(target);
+        self.println(`${Math.round(size / 1024)}\t${target}`);
+        return 0;
+      },
+
+      free(args) {
+        self.println('              total        used        free      shared  buff/cache   available');
+        self.println('Mem:        3072000     1024000     1024000           0     1024000     2048000');
+        self.println('Swap:       1024000           0     1024000');
+        return 0;
+      },
+
+      ping(args) {
+        if (!args[0]) { self.println('ping: usage: ping host'); return 1; }
+        self.println(`PING ${args[0]} (8.8.8.8) 56(84) bytes of data.`);
+        for (let i = 0; i < 3; i++) {
+          self.println(`64 bytes from ${args[0]}: icmp_seq=${i+1} ttl=117 time=${Math.floor(Math.random()*50)+10}.${Math.floor(Math.random()*100)} ms`);
+        }
+        self.println(`--- ${args[0]} ping statistics ---`);
+        self.println(`3 packets transmitted, 3 received, 0% packet loss`);
+        return 0;
+      },
+
+      ifconfig(args) {
+        self.println('lo: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536');
+        self.println('    inet 127.0.0.1  netmask 255.0.0.0');
+        self.println('wlan0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500');
+        self.println('    inet 192.168.1.100  netmask 255.255.255.0  broadcast 192.168.1.255');
+        return 0;
+      },
+
+      netstat(args) {
+        self.println('Active Internet connections (servers and established)');
+        self.println('Proto Recv-Q Send-Q Local Address           Foreign Address         State');
+        self.println('tcp        0      0 0.0.0.0:22              0.0.0.0:*               LISTEN');
+        self.println('tcp        0      0 192.168.1.100:22         10.0.0.1:54321          ESTABLISHED');
+        return 0;
+      },
+
+      nslookup(args) {
+        if (!args[0]) return 1;
+        self.println(`Server:    8.8.8.8`);
+        self.println(`Address:   8.8.8.8#53`);
+        self.println(`Name:      ${args[0]}`);
+        self.println(`Address:   142.250.${Math.floor(Math.random()*200)}.${Math.floor(Math.random()*200)}`);
+        return 0;
+      },
+
+      apt(args) {
+        if (args.length === 0) { self.println('apt: missing command'); return 1; }
+        const cmd = args[0];
+        const pkg = args[1] || 'package';
+        if (cmd === 'update') { self.println('Hit:1 https://deb.termux.dev/apt/termux-main stable InRelease'); return 0; }
+        if (cmd === 'install') {
+          self.println(`Reading package lists... Done`);
+          self.println(`Building dependency tree... Done`);
+          self.println(`The following NEW packages will be installed:`);
+          self.println(`  ${pkg}`);
+          self.println(`0 upgraded, 1 newly installed, 0 to remove and 0 not upgraded.`);
+          self.println(`Need to get ${Math.floor(Math.random()*1000)+100} kB of archives.`);
+          self.println(`After this operation, ${Math.floor(Math.random()*5000)+1000} kB of additional disk space will be used.`);
+          self.println(`Get:1 https://deb.termux.dev/apt/termux-main stable/main aarch64 ${pkg} ${Math.floor(Math.random()*10)}.${Math.floor(Math.random()*10)}-${Math.floor(Math.random()*10)} [${Math.floor(Math.random()*900)+100} kB]`);
+          self.println(`Fetched ${Math.floor(Math.random()*500)+100} kB in ${Math.floor(Math.random()*3)+1}s (${Math.floor(Math.random()*900)+100} kB/s)`);
+          self.println(`Selecting previously unselected package ${pkg}.`);
+          self.println(`(Reading database ... ${Math.floor(Math.random()*50000)+10000} files and directories currently installed.)`);
+          self.println(`Preparing to unpack .../${pkg}_${Math.floor(Math.random()*10)}.${Math.floor(Math.random()*10)}-${Math.floor(Math.random()*10)}_aarch64.deb ...`);
+          self.println(`Unpacking ${pkg} (${Math.floor(Math.random()*10)}.${Math.floor(Math.random()*10)}-${Math.floor(Math.random()*10)}) ...`);
+          self.println(`Setting up ${pkg} (${Math.floor(Math.random()*10)}.${Math.floor(Math.random()*10)}-${Math.floor(Math.random()*10)}) ...`);
+          return 0;
+        }
+        if (cmd === 'list') { self.println('Listing...\nautoconf/stable 2.71-1 aarch64\nbuild-essential/stable 12.9 aarch64\ncurl/stable 7.88.1 aarch64\ngit/stable 2.40.0 aarch64\npython/stable 3.11.2 aarch64'); return 0; }
+        if (cmd === 'search') { self.println(`Sorting... Done\nFull Text Search... Done\n${pkg}/stable ${Math.floor(Math.random()*10)}.${Math.floor(Math.random()*10)}-${Math.floor(Math.random()*10)} aarch64`); return 0; }
+        self.println(`apt: unknown command '${cmd}'`);
+        return 0;
+      },
+
+      nano(args) {
+        const file = args[0];
+        if (file) {
+          const content = self.vfs.readFile(file) || '';
+          self.println(`  GNU nano 7.2      ${file}`);
+          self.println('');
+          const lines = content.split('\n').slice(0, 10);
+          lines.forEach(l => self.println(l));
+          self.println('');
+          self.println('[ Read-only mode: Use the editor tab to edit this file ]');
+        } else {
+          self.println('[ Use "nano filename" to open a file ]');
+        }
+        return 0;
+      },
+
+      python(args) {
+        self.println('Python 3.11.2 (main, Mar 13 2023, 12:18:29)');
+        self.println('[GCC 12.2.0] on linux');
+        self.println('Type "help", "copyright", "credits" or "license" for more information.');
+        self.println('[Python interpreter not available in this terminal]');
+        self.println('[Use the code editor or install python via apt]');
+        return 0;
+      },
+
+      node(args) {
+        if (args.length === 0) {
+          self.println('Welcome to Node.js v20.11.0.');
+          self.println('Type ".help" for more information.');
+          self.println('[Node.js REPL not available in this terminal]');
+        } else {
+          const content = self.vfs.readFile(args[0]);
+          if (content) self.println(content);
+        }
+        return 0;
+      },
+
+      sudo(args) {
+        if (args.length === 0) { self.println('sudo: missing operand'); return 1; }
+        const cmd = args[0];
+        const cargs = args.slice(1);
+        if (self.commands[cmd]) return self.commands[cmd](cargs);
+        self.println(`sudo: ${cmd}: command not found`);
+        return 1;
+      },
+
+      man(args) {
+        if (!args[0]) { self.println('What manual page do you want?'); return 1; }
+        if (self.commands[args[0]]) {
+          self.println(`\nNAME\n    ${args[0]} - TerminalVault command\n\nSYNOPSIS\n    ${args[0]} [OPTIONS]\n\nDESCRIPTION\n    A built-in TerminalVault command.\n\nSEE ALSO\n    help\n`);
+        } else {
+          self.println(`No manual entry for ${args[0]}`);
+        }
+        return 0;
+      },
+
+      env(args) {
+        Object.entries(self.variables).forEach(([k,v]) => self.println(`${k}=${v}`));
+        return 0;
+      },
+
+      ssh(args) {
+        if (!args[0]) { self.println('ssh: usage: ssh user@host'); return 1; }
+        self.println(`ssh: Connecting to ${args[0]}...`);
+        self.println('ssh: SSH functionality requires a network connection.');
+        self.println('ssh: Use the SSH Manager in the settings to configure connections.');
+        return 0;
+      },
+
+      wget(args) {
+        if (!args[0]) { self.println('wget: missing URL'); return 1; }
+        const url = args[0];
+        const filename = url.split('/').pop() || 'index.html';
+        self.println(`--${new Date().toISOString()}--  ${url}`);
+        self.println(`Resolving ${new URL(url).hostname}... ${Math.floor(Math.random()*200)+1}.${Math.floor(Math.random()*200)+1}.${Math.floor(Math.random()*200)+1}.${Math.floor(Math.random()*200)+1}`);
+        self.println(`Connecting to ${new URL(url).hostname}|${Math.floor(Math.random()*200)+1}.${Math.floor(Math.random()*200)+1}.${Math.floor(Math.random()*200)+1}.${Math.floor(Math.random()*200)+1}|:${new URL(url).port || 443}... connected.`);
+        self.println(`HTTP request sent, awaiting response... 200 OK`);
+        self.println(`Length: ${Math.floor(Math.random()*1000000)+1000} [${filename.split('.').pop()}]`);
+        self.println(`Saving to: '${filename}'`);
+        self.println(`${filename}           100%[===================>]  ${Math.floor(Math.random()*900)+100}.${Math.floor(Math.random()*100)}K  ${Math.floor(Math.random()*5)+1}.${Math.floor(Math.random()*100)}MB/s`);
+        self.println(`Download complete. File saved to: ${self.vfs.cwd}/${filename}`);
+        self.vfs.writeFile(self.vfs.resolve(filename), `# Downloaded from ${url}\n# Content not available offline\n`);
+        return 0;
+      },
+
+      curl(args) {
+        if (!args[0]) { self.println('curl: try \'curl --help\' or \'curl --manual\' for more information'); return 1; }
+        const idx = args.indexOf('-o');
+        const output = idx >= 0 ? args[idx+1] : null;
+        const urlIdx = args.length - 1;
+        const url = args[urlIdx];
+        self.println(`<!DOCTYPE html>`);
+        self.println(`<!-- ${url} would be fetched here -->`);
+        if (output) {
+          self.vfs.writeFile(self.vfs.resolve(output), `Content from ${url}\n`);
+          self.println(`  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current`);
+          self.println(`                                 Dload  Upload   Total   Spent    Left  Speed`);
+          self.println(`100  1024  100  1024    0     0   1024      0  0:00:01  0:00:01 --:--:--  1024`);
+        }
+        return 0;
+      },
+
+      tar(args) {
+        const idx = args.indexOf('-xf');
+        if (idx >= 0 && idx + 1 < args.length) {
+          self.println(`Extracting ${args[idx+1]}...`);
+          self.println('Done.');
+        } else if (args.indexOf('-czf') >= 0) {
+          self.println('Archiving... Done.');
+        } else {
+          self.println('tar: usage: tar -xf archive.tar');
+        }
+        return 0;
+      },
+
+      zip(args) {
+        if (args.length >= 2) {
+          self.println(`  adding: ${args.slice(1).join(', ')} (stored 0%)`);
+        }
+        return 0;
+      },
+
+      unzip(args) {
+        if (args[0]) {
+          self.println(`Archive:  ${args[0]}`);
+          self.println(`  inflating: extracted_file.txt`);
+        }
+        return 0;
+      },
+
+      git(args) {
+        if (!args[0]) { self.println('usage: git <command> [<args>]'); return 1; }
+        if (args[0] === 'init') { self.println(`Initialized empty Git repository in ${self.vfs.cwd}/.git/`); return 0; }
+        if (args[0] === 'status') { self.println('On branch main\nnothing to commit, working tree clean'); return 0; }
+        if (args[0] === 'clone') { self.println(`Cloning into '${args[1]?.split('/').pop()?.replace('.git','') || 'repo'}'...\nremote: Enumerating objects: 100, done.\nReceiving objects: 100% (100/100), done.`); return 0; }
+        self.println(`git: '${args[0]}' is not a git command. See 'git --help'.`);
+        return 0;
+      },
+
+      python3(args) { return this.python(args); },
+
+      reboot(args) { self.println('Rebooting...\n[  OK  ] Reached target Reboot.\n[  OK  ] Rebooted.'); return 0; },
+
+      shutdown(args) { self.println('Shutdown scheduled for immediate execution...\nPoweroff.'); return 0; },
+
+      uptime(args) {
+        const up = Math.floor(Math.random() * 72) + 1;
+        const users = Math.floor(Math.random() * 5) + 1;
+        const load = (Math.random() * 2).toFixed(2);
+        self.println(` ${new Date().toTimeString().split(' ')[0]} up ${up} min,  ${users} user,  load average: ${load}, ${(parseFloat(load)-0.1).toFixed(2)}, ${(parseFloat(load)-0.2).toFixed(2)}`);
+        return 0;
+      },
+
+      hostname(args) { self.println('terminalvault'); return 0; },
+
+      dmesg(args) {
+        self.println('[    0.000000] Booting Linux on TerminalVault');
+        self.println('[    0.123456] CPU: ARM Cortex-A76 @ 2.4GHz');
+        self.println('[    0.234567] Memory: 3072MB available');
+        self.println('[    1.345678] mmc0: new high speed SDIO card at address 0001');
+        self.println('[    2.456789] wlan0: connected to network');
+        return 0;
+      },
+
+      crontab(args) {
+        if (args[0] === '-l') { self.println('no crontab for user'); }
+        else if (args[0] === '-e') { self.println('crontab: installing new crontab'); }
+        return 0;
+      },
+
+      systemctl(args) {
+        if (args[0] === 'status') {
+          self.println('● terminal.service - TerminalVault Terminal');
+          self.println('   Loaded: loaded (/etc/systemd/system/terminal.service; enabled)');
+          self.println('   Active: active (running)');
+        } else if (args[0] === 'list-units') {
+          self.println('  UNIT                     LOAD   ACTIVE SUB');
+          self.println('  terminal.service         loaded active running');
+          self.println('  sshd.service             loaded active running');
+        }
+        return 0;
+      },
+
+      lscpu(args) {
+        self.println('Architecture:        aarch64');
+        self.println('CPU op-mode(s):      32-bit, 64-bit');
+        self.println('Byte Order:          Little Endian');
+        self.println('CPU(s):              8');
+        self.println('Model name:          ARM Cortex-A76');
+        return 0;
+      },
+
+      lsblk(args) {
+        self.println('NAME   MAJ:MIN RM   SIZE RO TYPE MOUNTPOINT');
+        self.println('sda      8:0    0    30G  0 disk');
+        self.println('├─sda1   8:1    0    28G  0 part /');
+        self.println('└─sda2   8:2    0     2G  0 part [SWAP]');
+        return 0;
+      },
+
+      mount(args) {
+        self.println('sysfs on /sys type sysfs (rw,nosuid,nodev,noexec,relatime)');
+        self.println('proc on /proc type proc (rw,nosuid,nodev,noexec,relatime)');
+        self.println('/dev/sda1 on / type ext4 (rw,relatime)');
+        return 0;
+      },
+
+      ip(args) {
+        if (args[0] === 'addr') {
+          self.println('1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536');
+          self.println('    inet 127.0.0.1/8 scope host lo');
+          self.println('2: wlan0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500');
+          self.println('    inet 192.168.1.100/24 brd 192.168.1.255 scope global wlan0');
+        }
+        return 0;
+      },
+
+      ss(args) {
+        self.println('Netid  State  Recv-Q  Send-Q  Local Address:Port  Peer Address:Port');
+        self.println('tcp    LISTEN 0       128     0.0.0.0:22          0.0.0.0:*');
+        self.println('tcp    ESTAB  0       0       192.168.1.100:22    10.0.0.1:54321');
+        return 0;
+      },
+
+      top(args) {
+        self.println('top - ' + new Date().toTimeString().split(' ')[0] + ' up 1:23,  1 user,  load average: 0.52, 0.58, 0.59');
+        self.println('Tasks: 123 total,   1 running, 122 sleeping');
+        self.println('%Cpu(s):  2.5 us,  1.2 sy,  0.0 ni, 96.0 id,  0.3 wa');
+        self.println('MiB Mem:   3072.0 total,   1024.0 used,   2048.0 free');
+        self.println('MiB Swap:   1024.0 total,      0.0 used,   1024.0 free');
+        self.println('');
+        self.println('  PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND');
+        self.println('  123 user      20   0  162400  51200  10240 S   2.0   1.6   0:12.34 terminal');
+        self.println('    1 root      20   0   89600  25600   8192 S   0.0   0.8   0:05.67 systemd');
+        return 0;
+      },
+
+      sleep(args) {
+        const secs = parseInt(args[0]) || 1;
+        self.println(`[Sleeping for ${secs} seconds...]`);
+        return 0;
+      },
+
+      yes(args) {
+        const str = args.join(' ') || 'y';
+        for (let i = 0; i < 5; i++) self.println(str);
+        return 0;
+      },
+
+      printenv(args) {
+        if (args[0]) { self.println(self.variables[args[0]] || ''); return 0; }
+        return this.env(args);
+      },
+
+      basename(args) {
+        if (!args[0]) return 1;
+        self.println(args[0].split('/').pop());
+        return 0;
+      },
+
+      dirname(args) {
+        if (!args[0]) return 1;
+        const parts = args[0].split('/');
+        parts.pop();
+        self.println(parts.join('/') || '/');
+        return 0;
+      },
+
+      uniq(args) {
+        const content = self.vfs.readFile(args[0]);
+        if (!content) return 1;
+        const lines = content.split('\n');
+        const result = [];
+        for (let i = 0; i < lines.length; i++) {
+          if (lines[i] !== lines[i-1]) result.push(lines[i]);
+        }
+        self.println(result.join('\n'));
+        return 0;
+      },
+
+      tee(args) {
+        let content = '';
+        return 0;
+      },
+
+      xargs(args) {
+        if (!args[0]) { self.println('xargs: missing command'); return 1; }
+        return 0;
+      },
+
+      watch(args) {
+        if (!args[0]) { self.println('watch: missing command'); return 1; }
+        self.println(`Every 2.0s: ${args.join(' ')}`);
+        self.println('--- output would refresh every 2 seconds ---');
+        return 0;
+      },
+
+      screen(args) {
+        self.println('Screen GNU/Linux terminal multiplexer');
+        self.println('Use "screen -S name" to create a session');
+        return 0;
+      },
+
+      tmux(args) {
+        self.println('tmux: terminal multiplexer (simulated)');
+        self.println('Use "tmux new -s mysession" to create a session');
+        return 0;
+      },
+
+      vim(args) {
+        if (args[0]) {
+          self.println(`"${args[0]}" [New File]`);
+          self.println('-- VIM: Use the code editor tab for full editing --');
+        } else {
+          self.println('VIM - Vi IMproved 9.0');
+          self.println('Use "vim filename" to edit a file');
+        }
+        return 0;
+      },
+
+      vi(args) { return this.vim(args); },
+
+      lsof(args) {
+        self.println('COMMAND    PID USER   FD   TYPE DEVICE SIZE/OFF NODE NAME');
+        self.println('bash        1 user  cwd    DIR  179,1     4096    2 /home/user');
+        self.println('bash        1 user  txt    REG  179,1  1024000  123 /bin/bash');
+        self.println('terminal  123 user  cwd    DIR  179,1     4096    2 /home/user');
+        return 0;
+      },
+
+      logger(args) {
+        self.println(`<Info> ${args.join(' ')}`);
+        return 0;
+      },
+
+      nproc(args) { self.println('8'); return 0; },
+
+      arch(args) { self.println('aarch64'); return 0; },
+
+      time(args) {
+        const start = Date.now();
+        if (args.length > 0 && self.commands[args[0]]) {
+          self.commands[args[0]](args.slice(1));
+          const elapsed = Date.now() - start;
+          self.println(`\nreal\t0m${(elapsed/1000).toFixed(3)}s`);
+        }
+        return 0;
+      }
+    };
+  }
+
+  humanSize(bytes) {
+    if (bytes < 1024) return bytes + 'B';
+    if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + 'K';
+    return (bytes/(1024*1024)).toFixed(1) + 'M';
+  }
+
+  printHelp() {
+    self.println('TerminalVault Linux - Built-in Commands');
+    self.println('='.repeat(50));
+    self.println('  File Operations: ls, cd, pwd, cat, touch, mkdir, rm, rmdir,');
+    self.println('    cp, mv, head, tail, wc, find, grep, sort, uniq, tee');
+    self.println('  Text Editors: nano, vi, vim');
+    self.println('  System: uname, whoami, id, hostname, date, cal, uptime,');
+    self.println('    ps, top, kill, free, df, du, lscpu, lsblk, dmesg');
+    self.println('  Network: ping, ifconfig, ip, ss, netstat, nslookup,');
+    self.println('    wget, curl, ssh');
+    self.println('  Package: apt, apt-get');
+    self.println('  Development: python, python3, node, git');
+    self.println('  Archive: tar, zip, unzip');
+    self.println('  Shell: echo, export, alias, history, env, source,');
+    self.println('    printenv, which, sudo, time, sleep, yes');
+    self.println('  Multiplex: screen, tmux');
+    self.println('  System: reboot, shutdown, systemctl, mount,');
+    self.println('    crontab, lsof, logger');
+    self.println('  Other: clear, help, man, exit');
+    self.println('');
+    self.println('Features: Tab completion, command history (up/down),');
+    self.println('  piping (|), redirection (> >>), variables ($VAR)');
+    self.println('  SSH connections, file browser, code editor.');
+    self.println('');
+    self.println('Pro tip: Use the bottom toolbar for special keys,');
+    self.println('  swipe between tabs, and use the menu for more options.');
+  }
+
+  print(text) {
+    this.term.write(text);
+  }
+
+  println(text) {
+    this.term.writeln(text || '');
+  }
+
+  showPrompt() {
+    const user = this.variables.USER;
+    const host = 'terminalvault';
+    const dir = this.vfs.cwd === this.variables.HOME ? '~' : this.vfs.cwd;
+    const prompt = `\r\n\x1b[32m${user}@${host}\x1b[0m:\x1b[34m${dir}\x1b[0m$ `;
+    this.term.write(prompt);
+    this.currentInput = '';
+    this.running = false;
+  }
+
+  parseCommand(input) {
+    input = input.trim();
+    if (!input) return;
+    this.history.push(input);
+    this.historyIndex = this.history.length;
+
+    // Handle piping
+    if (input.includes('|')) {
+      const parts = input.split('|').map(s => s.trim());
+      let lastOutput = '';
+      for (let i = 0; i < parts.length; i++) {
+        const cmdParts = this._tokenize(parts[i]);
+        if (cmdParts.length === 0) continue;
+        const cmd = cmdParts[0];
+        const args = cmdParts.slice(1);
+        if (i < parts.length - 1) {
+          lastOutput = this._executeWithInput(cmd, args, lastOutput);
+        } else {
+          this._executeWithInput(cmd, args, lastOutput);
+        }
+      }
+      return;
+    }
+
+    // Handle redirection
+    let redirectTarget = null;
+    let redirectAppend = false;
+    let cmdStr = input;
+
+    const appendMatch = cmdStr.match(/>>\s*(\S+)$/);
+    const writeMatch = cmdStr.match(/>\s*(\S+)$/);
+    
+    if (appendMatch) {
+      redirectTarget = appendMatch[1];
+      redirectAppend = true;
+      cmdStr = cmdStr.substring(0, cmdStr.lastIndexOf('>>')).trim();
+    } else if (writeMatch) {
+      redirectTarget = writeMatch[1];
+      cmdStr = cmdStr.substring(0, cmdStr.lastIndexOf('>')).trim();
+    }
+
+    const parts = this._tokenize(cmdStr);
+    if (parts.length === 0) return;
+
+    let cmd = parts[0];
+    const args = parts.slice(1);
+
+    // Variable expansion
+    const expandedArgs = args.map(a => {
+      return a.replace(/\$(\w+)/g, (m, v) => this.variables[v] || '');
+    });
+
+    // Alias expansion
+    if (this.aliases[cmd]) {
+      const aliasParts = this._tokenize(this.aliases[cmd]);
+      const expandedAliasArgs = aliasParts.slice(1).concat(expandedArgs);
+      cmd = aliasParts[0];
+      return this._executeCmd(cmd, expandedAliasArgs, redirectTarget, redirectAppend);
+    }
+
+    this._executeCmd(cmd, expandedArgs, redirectTarget, redirectAppend);
+  }
+
+  _tokenize(str) {
+    const tokens = [];
+    let current = '';
+    let inQuote = null;
+    for (let i = 0; i < str.length; i++) {
+      const c = str[i];
+      if (inQuote) {
+        if (c === inQuote) { inQuote = null; }
+        else { current += c; }
+      } else if (c === '"' || c === "'") {
+        inQuote = c;
+      } else if (c === ' ') {
+        if (current) { tokens.push(current); current = ''; }
+      } else {
+        current += c;
+      }
+    }
+    if (current) tokens.push(current);
+    return tokens;
+  }
+
+  _executeWithInput(cmd, args, input) {
+    // For piped commands, we take input as the data
+    if (cmd === 'grep' && input) {
+      const lines = input.split('\n');
+      const pattern = args[0] || '';
+      lines.forEach(l => {
+        if (l.includes(pattern)) this.println(l);
+      });
+    } else if (cmd === 'head' && input) {
+      const n = parseInt(args[0]) || 10;
+      input.split('\n').slice(0, n).forEach(l => this.println(l));
+    } else if (cmd === 'tail' && input) {
+      const n = parseInt(args[0]) || 10;
+      const lines = input.split('\n');
+      lines.slice(Math.max(0, lines.length - n)).forEach(l => this.println(l));
+    } else if (cmd === 'sort' && input) {
+      input.split('\n').filter(Boolean).sort().forEach(l => this.println(l));
+    } else if (cmd === 'uniq' && input) {
+      const lines = input.split('\n');
+      for (let i = 0; i < lines.length; i++) {
+        if (lines[i] !== lines[i-1]) this.println(lines[i]);
+      }
+    } else if (cmd === 'wc' && input) {
+      const lines = input.split('\n').length;
+      const words = input.split(/\s+/).filter(Boolean).length;
+      const chars = input.length;
+      this.println(`${lines} ${words} ${chars}`);
+    } else if (cmd === 'cat' && input) {
+      this.print(input);
+    } else if (cmd === 'echo') {
+      this.println(args.join(' ') + (input ? '\n' + input : ''));
+    } else {
+      // Fallback: try the command with piped input
+      const cmdFn = this.commands[cmd];
+      if (cmdFn) {
+        const output = cmdFn(args);
+        if (input) this.print(input);
+        return output;
+      }
+      this.println(`command not found: ${cmd}`);
+    }
+    return '';
+  }
+
+  _executeCmd(cmd, args, redirect, append) {
+    const cmdFn = this.commands[cmd];
+    if (cmdFn) {
+      const output = [];
+      const origPrint = this.print.bind(this);
+      const origPrintln = this.println.bind(this);
+      
+      if (redirect) {
+        let buf = '';
+        this.print = (t) => { buf += t; };
+        this.println = (t) => { buf += t + '\n'; };
+        cmdFn(args);
+        this.print = origPrint;
+        this.println = origPrintln;
+        const path = this.vfs.resolve(redirect);
+        const existing = this.vfs.readFile(path);
+        this.vfs.writeFile(path, append ? (existing || '') + buf : buf);
+      } else {
+        cmdFn(args);
+      }
+    } else {
+      this.println(`bash: ${cmd}: command not found`);
+    }
+  }
+}
+
+// ============================================================
+// INIT
+// ============================================================
+const vfs = new VirtualFileSystem();
+const engine = new CommandEngine(term, vfs);
+
+// Handle input
+let inputBuffer = '';
+let cursorPos = 0;
+
+term.onKey(e => {
+  const ev = e.domEvent;
+  const key = e.key;
+
+  if (ev.ctrlKey && key === 'c') {
+    term.write('^C');
+    engine.showPrompt();
+    inputBuffer = '';
+    cursorPos = 0;
+    return;
+  }
+  if (ev.ctrlKey && key === 'l') {
+    term.clear();
+    engine.showPrompt();
+    return;
+  }
+  if (ev.ctrlKey && key === 'd') {
+    if (inputBuffer.length === 0) {
+      engine.println('logout');
+      return;
+    }
+    return;
+  }
+  if (ev.ctrlKey && key === 'z') {
+    term.write('^Z');
+    engine.showPrompt();
+    inputBuffer = '';
+    cursorPos = 0;
+    return;
+  }
+
+  if (ev.keyCode === 13) { // Enter
+    term.write('\r\n');
+    engine.parseCommand(inputBuffer);
+    inputBuffer = '';
+    cursorPos = 0;
+    engine.showPrompt();
+    return;
+  }
+
+  if (ev.keyCode === 8) { // Backspace
+    if (cursorPos > 0) {
+      inputBuffer = inputBuffer.slice(0, cursorPos - 1) + inputBuffer.slice(cursorPos);
+      cursorPos--;
+      term.write('\b \b');
+    }
+    return;
+  }
+
+  if (ev.keyCode === 9) { // Tab - simple completion
+    ev.preventDefault();
+    const words = inputBuffer.split(' ');
+    const lastWord = words[words.length - 1];
+    const completions = Object.keys(engine.commands).filter(c => c.startsWith(lastWord));
+    if (completions.length === 1) {
+      const remaining = completions[0].slice(lastWord.length);
+      inputBuffer += remaining;
+      term.write(remaining);
+      cursorPos += remaining.length;
+    } else if (completions.length > 1) {
+      engine.println('');
+      engine.println(completions.join('  '));
+      engine.showPrompt();
+      term.write(inputBuffer);
+    }
+    return;
+  }
+
+  if (ev.keyCode === 37) { // Left arrow
+    if (cursorPos > 0) {
+      cursorPos--;
+      term.write('\x1b[D');
+    }
+    return;
+  }
+
+  if (ev.keyCode === 39) { // Right arrow
+    if (cursorPos < inputBuffer.length) {
+      cursorPos++;
+      term.write('\x1b[C');
+    }
+    return;
+  }
+
+  if (ev.keyCode === 38) { // Up arrow
+    if (engine.historyIndex > 0) {
+      while (cursorPos < inputBuffer.length) { term.write('\x1b[C'); cursorPos++; }
+      term.write('\b \b'.repeat(inputBuffer.length));
+      engine.historyIndex--;
+      inputBuffer = engine.history[engine.historyIndex] || '';
+      cursorPos = inputBuffer.length;
+      term.write(inputBuffer);
+    }
+    return;
+  }
+
+  if (ev.keyCode === 40) { // Down arrow
+    if (engine.historyIndex < engine.history.length - 1) {
+      while (cursorPos < inputBuffer.length) { term.write('\x1b[C'); cursorPos++; }
+      term.write('\b \b'.repeat(inputBuffer.length));
+      engine.historyIndex++;
+      inputBuffer = engine.history[engine.historyIndex] || '';
+      cursorPos = inputBuffer.length;
+      term.write(inputBuffer);
+    } else if (engine.historyIndex === engine.history.length - 1) {
+      while (cursorPos < inputBuffer.length) { term.write('\x1b[C'); cursorPos++; }
+      term.write('\b \b'.repeat(inputBuffer.length));
+      engine.historyIndex = engine.history.length;
+      inputBuffer = '';
+      cursorPos = 0;
+    }
+    return;
+  }
+
+  if (ev.keyCode === 46) { // Delete
+    if (cursorPos < inputBuffer.length) {
+      inputBuffer = inputBuffer.slice(0, cursorPos) + inputBuffer.slice(cursorPos + 1);
+      term.write('\x1b[P');
+    }
+    return;
+  }
+
+  if (ev.keyCode === 36) { // Home
+    while (cursorPos > 0) { term.write('\x1b[D'); cursorPos--; }
+    return;
+  }
+
+  if (ev.keyCode === 35) { // End
+    while (cursorPos < inputBuffer.length) { term.write('\x1b[C'); cursorPos++; }
+    return;
+  }
+
+  // Regular character
+  if (key.length === 1 && !ev.ctrlKey && !ev.altKey) {
+    const before = inputBuffer.slice(0, cursorPos);
+    const after = inputBuffer.slice(cursorPos);
+    inputBuffer = before + key + after;
+    cursorPos++;
+    if (cursorPos === inputBuffer.length) {
+      term.write(key);
+    } else {
+      term.write(key + after);
+      term.write('\b'.repeat(after.length));
+    }
+    return;
+  }
+});
+
+// Handle paste
+term.attachCustomKeyEventHandler(e => {
+  if (e.ctrlKey && e.key === 'v' && e.type === 'keydown') {
+    navigator.clipboard.readText().then(text => {
+      text.split('').forEach(c => {
+        if (c === '\n') {
+          term.write('\r\n');
+          engine.parseCommand(inputBuffer);
+          inputBuffer = '';
+          cursorPos = 0;
+          engine.showPrompt();
+        } else {
+          const before = inputBuffer.slice(0, cursorPos);
+          const after = inputBuffer.slice(cursorPos);
+          inputBuffer = before + c + after;
+          cursorPos++;
+          if (cursorPos === inputBuffer.length) {
+            term.write(c);
+          } else {
+            term.write(c + after);
+            term.write('\b'.repeat(after.length));
+          }
+        }
+      });
+    });
+    return false;
+  }
+  return true;
+});
+
+// Send key input from React Native
+window.addEventListener('message', e => {
+  if (e.data && e.data.type === 'sendKey') {
+    const key = e.data.key;
+    const fakeEvent = { key, domEvent: { keyCode: key.charCodeAt(0), ctrlKey: false, altKey: false, preventDefault: () => {} }, ctrlKey: false, altKey: false };
+    if (key === 'Enter') fakeEvent.domEvent.keyCode = 13;
+    else if (key === 'Tab') fakeEvent.domEvent.keyCode = 9;
+    else if (key === 'Backspace') fakeEvent.domEvent.keyCode = 8;
+    else if (key === 'Escape') fakeEvent.domEvent.keyCode = 27;
+    else if (key === 'ArrowUp') fakeEvent.domEvent.keyCode = 38;
+    else if (key === 'ArrowDown') fakeEvent.domEvent.keyCode = 40;
+    else if (key === 'ArrowLeft') fakeEvent.domEvent.keyCode = 37;
+    else if (key === 'ArrowRight') fakeEvent.domEvent.keyCode = 39;
+    else if (key.startsWith('Ctrl+')) {
+      fakeEvent.domEvent.ctrlKey = true;
+      fakeEvent.domEvent.keyCode = key[5].toLowerCase().charCodeAt(0) - 96;
+      fakeEvent.key = key[5].toLowerCase();
+    }
+    term._core.keyDown(fakeEvent.domEvent);
+  }
+});
+
+// Initial display
+engine.println('╔══════════════════════════════════════════╗');
+engine.println('║        TerminalVault Linux v1.0          ║');
+engine.println('║    A mobile Linux terminal environment   ║');
+engine.println('╚══════════════════════════════════════════╝');
+engine.println('');
+engine.println('Type "help" for available commands.');
+engine.showPrompt();
+
+// Save state periodically
+setInterval(() => { try { vfs.saveState(); } catch(e) {} }, 30000);
+</script>
+</body>
+</html>

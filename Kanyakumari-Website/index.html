@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kanyakumari - The Land's End</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Inter', sans-serif;
+      color: #1a1a2e;
+      background: #0f0f1a;
+      overflow-x: hidden;
+    }
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: #0f0f1a; }
+    ::-webkit-scrollbar-thumb { background: #e94560; border-radius: 4px; }
+
+    nav {
+      position: fixed; top: 0; width: 100%; z-index: 1000;
+      padding: 18px 40px;
+      display: flex; justify-content: space-between; align-items: center;
+      transition: all 0.4s ease;
+      background: transparent;
+    }
+    nav.scrolled { background: rgba(15,15,26,0.95); backdrop-filter: blur(15px); padding: 12px 40px; box-shadow: 0 2px 30px rgba(0,0,0,0.3); }
+    nav .logo {
+      font-family: 'Playfair Display', serif;
+      font-size: 24px; font-weight: 700; color: #fff;
+      text-decoration: none; letter-spacing: 1px;
+    }
+    nav .logo span { color: #e94560; }
+    nav .nav-links { display: flex; gap: 28px; list-style: none; flex-wrap: wrap; }
+    nav .nav-links a {
+      color: rgba(255,255,255,0.8); text-decoration: none;
+      font-size: 13px; font-weight: 500; letter-spacing: 0.5px;
+      text-transform: uppercase; transition: color 0.3s;
+      position: relative;
+    }
+    nav .nav-links a::after {
+      content: ''; position: absolute; bottom: -4px; left: 0;
+      width: 0; height: 2px; background: #e94560;
+      transition: width 0.3s;
+    }
+    nav .nav-links a:hover { color: #fff; }
+    nav .nav-links a:hover::after { width: 100%; }
+
+    .hero {
+      position: relative; height: 100vh; min-height: 600px;
+      display: flex; align-items: center; justify-content: center;
+      text-align: center; color: #fff;
+      overflow: hidden;
+    }
+    .hero .hero-bg {
+      position: absolute; top: 0; left: 0;
+      width: 100%; height: 100%; object-fit: cover;
+      z-index: 0;
+    }
+    .hero .overlay {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      background: linear-gradient(135deg, rgba(15,15,26,0.7) 0%, rgba(15,15,26,0.3) 50%, rgba(233,69,96,0.2) 100%);
+      z-index: 1;
+    }
+    .hero .hero-content { position: relative; z-index: 2; padding: 20px; max-width: 900px; }
+    .hero .hero-badge {
+      display: inline-block;
+      background: rgba(233,69,96,0.2); border: 1px solid rgba(233,69,96,0.4);
+      padding: 8px 24px; border-radius: 50px;
+      font-size: 12px; font-weight: 600; letter-spacing: 3px; text-transform: uppercase;
+      margin-bottom: 24px; color: #e94560;
+    }
+    .hero h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(48px, 8vw, 96px); font-weight: 900;
+      line-height: 1.05; margin-bottom: 16px;
+    }
+    .hero h1 .highlight { background: linear-gradient(135deg, #e94560, #ff6b6b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .hero .subtitle {
+      font-size: clamp(16px, 2vw, 22px); font-weight: 300;
+      color: rgba(255,255,255,0.8); margin-bottom: 32px; line-height: 1.6;
+    }
+    .hero .scroll-indicator {
+      position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); z-index: 2;
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+      color: rgba(255,255,255,0.6); font-size: 11px; letter-spacing: 2px; text-transform: uppercase;
+      animation: float 2s ease-in-out infinite;
+    }
+    .hero .scroll-indicator .line {
+      width: 1px; height: 40px; background: linear-gradient(to bottom, rgba(255,255,255,0.6), transparent);
+    }
+    @keyframes float { 0%,100% { transform: translateX(-50%) translateY(0); } 50% { transform: translateX(-50%) translateY(8px); } }
+
+    section { position: relative; }
+    .section-inner { max-width: 1200px; margin: 0 auto; padding: 100px 40px; }
+    .section-tag {
+      display: inline-block;
+      background: rgba(233,69,96,0.1); border: 1px solid rgba(233,69,96,0.2);
+      padding: 6px 18px; border-radius: 50px;
+      font-size: 11px; font-weight: 600; letter-spacing: 3px; text-transform: uppercase;
+      color: #e94560; margin-bottom: 16px;
+    }
+    .section-title {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(32px, 4vw, 52px); font-weight: 700;
+      margin-bottom: 20px; line-height: 1.2;
+    }
+    .section-title .highlight { background: linear-gradient(135deg, #e94560, #ff6b6b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .section-desc { font-size: 17px; line-height: 1.8; color: #555; margin-bottom: 48px; max-width: 720px; }
+    .text-white .section-desc { color: rgba(255,255,255,0.7); }
+    .text-white h2, .text-white h3 { color: #fff; }
+
+    .section-light { background: #fafafa; }
+    .section-light .section-title { color: #1a1a2e; }
+    .section-dark { background: #0f0f1a; color: #fff; }
+    .section-dark .section-desc { color: rgba(255,255,255,0.7); }
+
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; }
+    .card {
+      background: #fff; border-radius: 16px; overflow: hidden;
+      box-shadow: 0 4px 30px rgba(0,0,0,0.06);
+      transition: transform 0.4s ease, box-shadow 0.4s ease;
+    }
+    .card:hover { transform: translateY(-6px); box-shadow: 0 12px 50px rgba(0,0,0,0.12); }
+    .card .card-img {
+      width: 100%; height: 220px; object-fit: cover;
+      transition: transform 0.6s ease;
+    }
+    .card:hover .card-img { transform: scale(1.05); }
+    .card .card-body { padding: 28px; }
+    .card .card-body h3 { font-size: 20px; font-weight: 600; margin-bottom: 10px; color: #1a1a2e; }
+    .card .card-body p { font-size: 14px; line-height: 1.7; color: #666; }
+
+    .card-dark { background: rgba(255,255,255,0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.08); }
+    .card-dark .card-body h3 { color: #fff; }
+    .card-dark .card-body p { color: rgba(255,255,255,0.7); }
+
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 20px; margin: 48px 0; }
+    .stat-card {
+      text-align: center; padding: 32px 16px;
+      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px; transition: transform 0.3s;
+    }
+    .stat-card:hover { transform: translateY(-4px); }
+    .stat-card .num {
+      font-family: 'Playfair Display', serif;
+      font-size: 42px; font-weight: 700;
+      background: linear-gradient(135deg, #e94560, #ff6b6b);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      margin-bottom: 6px;
+    }
+    .stat-card .label { font-size: 13px; color: rgba(255,255,255,0.6); letter-spacing: 0.5px; }
+
+    .fact-list { list-style: none; display: grid; gap: 14px; }
+    .fact-list li {
+      display: flex; align-items: flex-start; gap: 14px;
+      font-size: 15px; line-height: 1.6; color: #555;
+    }
+    .fact-list li::before {
+      content: ''; flex-shrink: 0;
+      width: 8px; height: 8px; border-radius: 50%;
+      background: #e94560; margin-top: 7px;
+    }
+    .text-white .fact-list li { color: rgba(255,255,255,0.75); }
+
+    .timeline { position: relative; padding: 20px 0; }
+    .timeline::before {
+      content: ''; position: absolute; left: 20px; top: 0; bottom: 0;
+      width: 2px; background: linear-gradient(to bottom, #e94560, transparent);
+    }
+    .timeline-item { position: relative; padding-left: 56px; margin-bottom: 36px; }
+    .timeline-item::before {
+      content: ''; position: absolute; left: 12px; top: 6px;
+      width: 16px; height: 16px; border-radius: 50%;
+      background: #e94560; border: 3px solid #1a1a2e;
+    }
+    .timeline-item .year { font-size: 14px; font-weight: 700; color: #e94560; text-transform: uppercase; letter-spacing: 1px; }
+    .timeline-item h4 { font-size: 18px; font-weight: 600; margin: 4px 0 6px; }
+    .timeline-item p { font-size: 14px; color: #666; line-height: 1.6; }
+
+    .split { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center; }
+    .split-img { width: 100%; border-radius: 16px; object-fit: cover; height: 100%; min-height: 350px; }
+
+    .quote-block { text-align: center; padding: 60px 20px; max-width: 800px; margin: 0 auto; }
+    .quote-block blockquote {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(20px, 2.5vw, 32px);
+      font-style: italic; line-height: 1.5;
+      color: #1a1a2e; margin-bottom: 16px;
+    }
+    .text-white blockquote { color: #fff; }
+    .quote-block cite { font-size: 14px; color: #888; font-style: normal; }
+
+    .data-table { width: 100%; border-collapse: collapse; font-size: 14px; margin: 24px 0; border-radius: 12px; overflow: hidden; }
+    .data-table thead { background: #1a1a2e; color: #fff; }
+    .data-table th { padding: 14px 18px; text-align: left; font-weight: 600; font-size: 13px; letter-spacing: 0.5px; }
+    .data-table td { padding: 12px 18px; border-bottom: 1px solid #eee; color: #444; }
+    .data-table tbody tr:hover { background: rgba(233,69,96,0.04); }
+    .data-table tbody tr:last-child td { border-bottom: none; }
+
+    .gallery { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+    .gallery img { width: 100%; height: 260px; object-fit: cover; border-radius: 12px; transition: transform 0.4s; cursor: pointer; }
+    .gallery img:hover { transform: scale(1.02); }
+
+    .parallax-section {
+      position: relative; height: 70vh; min-height: 450px;
+      display: flex; align-items: center; justify-content: center;
+      text-align: center; color: #fff;
+      background-attachment: fixed;
+      background-size: cover; background-position: center;
+    }
+    .parallax-section .parallax-overlay { position: absolute; inset: 0; background: rgba(15,15,26,0.55); }
+    .parallax-section h2 { position: relative; z-index: 1; font-family: 'Playfair Display', serif; font-size: clamp(32px, 5vw, 64px); font-weight: 700; }
+    .parallax-section p { position: relative; z-index: 1; font-size: 18px; color: rgba(255,255,255,0.8); margin-top: 16px; max-width: 600px; }
+
+    footer {
+      background: #0a0a14; color: rgba(255,255,255,0.5);
+      text-align: center; padding: 48px 20px 32px;
+      font-size: 13px; line-height: 1.8;
+    }
+    footer .footer-logo { font-family: 'Playfair Display', serif; font-size: 22px; font-weight: 700; color: #fff; margin-bottom: 8px; }
+    footer .footer-logo span { color: #e94560; }
+
+    @media (max-width: 768px) {
+      nav { padding: 14px 20px; }
+      nav .nav-links { gap: 14px; }
+      nav .nav-links a { font-size: 11px; }
+      .section-inner { padding: 60px 20px; }
+      .card-grid { grid-template-columns: 1fr; }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .parallax-section { background-attachment: scroll; }
+      .split { grid-template-columns: 1fr; gap: 32px; }
+    }
+  </style>
+</head>
+<body>
+
+<nav id="navbar">
+  <a href="#" class="logo">Kanya<span>kumari</span></a>
+  <ul class="nav-links">
+    <li><a href="#overview">Overview</a></li>
+    <li><a href="#history">History</a></li>
+    <li><a href="#attractions">Attractions</a></li>
+    <li><a href="#nature">Nature</a></li>
+    <li><a href="#gallery">Gallery</a></li>
+    <li><a href="#facts">Facts</a></li>
+  </ul>
+</nav>
+
+<!-- ===== HERO with REAL photo of Sunrise at Vivekananda Rock Memorial ===== -->
+<section class="hero">
+  <div class="hero-bg" style="background: url('https://upload.wikimedia.org/wikipedia/commons/c/c5/Vivekananda_Rock_Memorial_Amidst_Blue_and_Green_Ocean.jpg') center/cover no-repeat;"></div>
+  <div class="overlay"></div>
+  <div class="hero-content">
+    <div class="hero-badge">Southernmost Tip of India</div>
+    <h1>Kanya<span class="highlight">kumari</span></h1>
+    <p class="subtitle">Where three oceans meet, cultures converge, and the soul of India touches the horizon — <br><strong>"The Land's End"</strong></p>
+  </div>
+  <div class="scroll-indicator">
+    <span>Explore</span>
+    <div class="line"></div>
+  </div>
+</section>
+
+<!-- ===== OVERVIEW with REAL photo of Sunset Point ===== -->
+<section id="overview" class="section-light">
+  <div class="section-inner">
+    <div class="split">
+      <div>
+        <span class="section-tag">Welcome</span>
+        <h2 class="section-title">Where the <span class="highlight">Oceans</span> Embrace</h2>
+        <p class="section-desc">
+          Kanyakumari (officially <strong>Kanniyakumari</strong>, formerly <em>Cape Comorin</em>) is the
+          southernmost town of mainland India, nestled in Tamil Nadu at the meeting point of the
+          <strong>Arabian Sea</strong>, <strong>Bay of Bengal</strong>, and the <strong>Indian Ocean</strong>
+          — a phenomenon known as <strong>Triveni Sangam</strong>.
+        </p>
+        <p class="section-desc">
+          It is the <strong>only place on Earth</strong> where you can witness both sunrise and sunset from
+          the same vantage point. On full moon nights (especially Chithra Pournami), the sun and moon
+          appear facing each other on the same horizon — a celestial spectacle found nowhere else.
+        </p>
+      </div>
+      <img src="https://upload.wikimedia.org/wikipedia/commons/9/93/Sunset_Point_Kanyakumari.jpg"
+           alt="Sunset Point Kanyakumari - real photo" class="split-img" loading="lazy">
+    </div>
+  </div>
+</section>
+
+<!-- ===== STATS ===== -->
+<section class="section-dark">
+  <div class="section-inner" style="padding-bottom: 60px; padding-top: 60px;">
+    <div class="stats-grid">
+      <div class="stat-card"><div class="num">8 N</div><div class="label">Latitude</div></div>
+      <div class="stat-card"><div class="num">71.5</div><div class="label">km Coastline</div></div>
+      <div class="stat-card"><div class="num">3</div><div class="label">Oceans Meet</div></div>
+      <div class="stat-card"><div class="num">88%</div><div class="label">Literacy Rate</div></div>
+      <div class="stat-card"><div class="num">1,140</div><div class="label">Plant Species</div></div>
+      <div class="stat-card"><div class="num">133ft</div><div class="label">Thiruvalluvar Statue</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== QUOTE ===== -->
+<section class="section-light">
+  <div class="section-inner" style="padding-top: 40px; padding-bottom: 40px;">
+    <div class="quote-block">
+      <blockquote>"Kanyakumari is not just a destination; it is where India takes its final bow in a spectacular display of nature's grandeur."</blockquote>
+    </div>
+  </div>
+</section>
+
+<!-- ===== HISTORY ===== -->
+<section id="history" class="section-light" style="background: #f5f5fa;">
+  <div class="section-inner">
+    <span class="section-tag">The Past</span>
+    <h2 class="section-title">A Journey Through <span class="highlight">Time</span></h2>
+    <p class="section-desc">From the dawn of civilization to the present day, Kanyakumari's story spans four millennia.</p>
+
+    <div class="split" style="margin-bottom: 48px;">
+      <div>
+        <div class="timeline">
+          <div class="timeline-item">
+            <span class="year">~2000 BC</span>
+            <h4>Neolithic Civilization</h4>
+            <p>Earliest evidence of human settlement with Neolithic Celts dating to 1500-1000 BC discovered in the region.</p>
+          </div>
+          <div class="timeline-item">
+            <span class="year">~276 BC</span>
+            <h4>Mentioned by Ptolemy</h4>
+            <p>The Greek scholar mentions "Komari" as a harbor in the Pandian Kingdom. Also referenced by Marco Polo and in Sangam-era Tamil literature.</p>
+          </div>
+          <div class="timeline-item">
+            <span class="year">9th-18th Century</span>
+            <h4>Dynastic Rule</h4>
+            <p>Ruled by Cheras, Cholas, Pandyas, Ays, Nayaks, and the Venad/Travancore kingdom. The Battle of Colachel took place here.</p>
+          </div>
+          <div class="timeline-item">
+            <span class="year">1656</span>
+            <h4>Cape Comorin</h4>
+            <p>Dutch East India Company shortened "Kanya Kumari" to "Comorin." During British rule, it became "Cape Comorin."</p>
+          </div>
+          <div class="timeline-item">
+            <span class="year">1956</span>
+            <h4>Merger with Tamil Nadu</h4>
+            <p>After a historic agitation led by Marshal A. Nesamony, four Tamil-speaking taluks merged with Madras State (now Tamil Nadu).</p>
+          </div>
+          <div class="timeline-item">
+            <span class="year">2016</span>
+            <h4>Renamed Kanniyakumari</h4>
+            <p>The Government of India officially renamed Cape Comorin to Kanniyakumari, restoring its ancient Tamil name.</p>
+          </div>
+        </div>
+      </div>
+      <div>
+        <img src="https://upload.wikimedia.org/wikipedia/commons/f/f8/Vivekananda_Mandapam.jpg"
+             alt="Vivekananda Mandapam - real photo" class="split-img" style="min-height: 400px;" loading="lazy">
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== PARALLAX 1 - REAL Sunrise at Kanyakumari ===== -->
+<section class="parallax-section" style="background-image: url('https://upload.wikimedia.org/wikipedia/commons/4/44/Kanyakumari_sunrise_view.jpg');">
+  <div class="parallax-overlay"></div>
+  <div>
+    <h2>The Confluence of Three Seas</h2>
+    <p>Triveni Sangam — where the Arabian Sea, Bay of Bengal, and Indian Ocean meet in perfect harmony</p>
+  </div>
+</section>
+
+<!-- ===== ATTRACTIONS with REAL photos ===== -->
+<section id="attractions" class="section-light">
+  <div class="section-inner">
+    <span class="section-tag">Explore</span>
+    <h2 class="section-title">Iconic <span class="highlight">Attractions</span></h2>
+    <p class="section-desc">From ancient temples to modern marvels, Kanyakumari offers an unforgettable tapestry of experiences.</p>
+
+    <div class="card-grid">
+      <div class="card">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/c/c5/Vivekananda_Rock_Memorial_Amidst_Blue_and_Green_Ocean.jpg"
+             alt="Vivekananda Rock Memorial - real photo" class="card-img" loading="lazy">
+        <div class="card-body">
+          <h3>Vivekananda Rock Memorial</h3>
+          <p>Built in 1970 on a rocky islet 500m offshore, marking the spot where Swami Vivekananda attained enlightenment in 1892. Accessible by ferry from 8 AM to 4 PM daily.</p>
+        </div>
+      </div>
+      <div class="card">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/8/8a/Thiruvalluvar_Statue_Kanyakumari.jpg"
+             alt="Thiruvalluvar Statue - real photo" class="card-img" loading="lazy">
+        <div class="card-body">
+          <h3>Thiruvalluvar Statue</h3>
+          <p>A 133ft (41m) stone colossus of the Tamil poet-philosopher weighing 7,000 tons. The 38ft pedestal represents virtue, and the 133ft total height represents the 133 chapters of the Thirukkural.</p>
+        </div>
+      </div>
+      <div class="card">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/7/76/Thiruvalluvar_Statue_at_Kanyakumari_03.jpg"
+             alt="Thiruvalluvar Statue closeup - real photo" class="card-img" loading="lazy">
+        <div class="card-body">
+          <h3>Bhagavathy Amman Temple</h3>
+          <p>A 3,000-year-old Shakti Peetha dedicated to Goddess Kanya Kumari. The idol's ruby nose ring was so bright it was once mistaken for a lighthouse by sailors.</p>
+        </div>
+      </div>
+      <div class="card">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/9/93/Sunset_Point_Kanyakumari.jpg"
+             alt="Sunset Point - real photo" class="card-img" loading="lazy">
+        <div class="card-body">
+          <h3>Sunset Point & Pier</h3>
+          <p>One of the most iconic spots in Kanyakumari, offering breathtaking sunset views over the confluence of three oceans. A must-visit for every traveler.</p>
+        </div>
+      </div>
+      <div class="card">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/c/c5/Vivekananda_Rock_Memorial_Amidst_Blue_and_Green_Ocean.jpg"
+             alt="Coastal view - real photo" class="card-img" loading="lazy">
+        <div class="card-body">
+          <h3>Vattakottai Fort</h3>
+          <p>An 18th-century circular granite fort built by Travancore, overseen by Dutch commander Eustachius De Lannoy. Overlooks both the Bay of Bengal and Arabian Sea.</p>
+        </div>
+      </div>
+      <div class="card">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/4/44/Kanyakumari_sunrise_view.jpg"
+             alt="Sunrise at Kanyakumari - real photo" class="card-img" loading="lazy">
+        <div class="card-body">
+          <h3>Sunrise at Kanyakumari</h3>
+          <p>The only place in India where you can watch the sunrise over the Bay of Bengal and sunset over the Arabian Sea from the exact same location.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== BEACHES with REAL Chothavilai Beach photo ===== -->
+<section class="section-dark">
+  <div class="section-inner">
+    <span class="section-tag">Coastal Beauty</span>
+    <h2 class="section-title">Pristine <span class="highlight">Beaches</span></h2>
+    <p class="section-desc">With 71.5 km of coastline washed by three oceans, Kanyakumari's beaches are among India's most spectacular.</p>
+    <div class="card-grid">
+      <div class="card card-dark">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/c/c0/Golden_sea_at_sunset_Chothavilai_Beach%2C_Kanyakumari.jpg"
+             alt="Chothavilai Beach sunset - real photo" class="card-img" loading="lazy">
+        <div class="card-body">
+          <h3>Kanyakumari Beach</h3>
+          <p>The main beach at the tip of the peninsula — the only place in India where you can watch sunrise over the Bay of Bengal and sunset over the Arabian Sea from the same spot.</p>
+        </div>
+      </div>
+      <div class="card card-dark">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/c/c0/Golden_sea_at_sunset_Chothavilai_Beach%2C_Kanyakumari.jpg"
+             alt="Chothavilai Beach - real photo" class="card-img" loading="lazy">
+        <div class="card-body">
+          <h3>Sothavilai (Chothavilai) Beach</h3>
+          <p>A serene stretch of golden sand, famous for spectacular sunsets. The name means "golden beach" in Tamil, and it lives up to its name.</p>
+        </div>
+      </div>
+      <div class="card card-dark">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/9/93/Sunset_Point_Kanyakumari.jpg"
+             alt="Sanguthurai Beach" class="card-img" loading="lazy">
+        <div class="card-body">
+          <h3>Sanguthurai Beach</h3>
+          <p>Adorned with golden sands and glittering waters, this beach offers a tranquil escape surrounded by swaying palms and stunning coastal views.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== FORESTS & MOUNTAINS ===== -->
+<section class="section-light" style="background: #edf2f7;">
+  <div class="section-inner">
+    <span class="section-tag">Wild Landscapes</span>
+    <h2 class="section-title">Forests & <span class="highlight">Mountains</span></h2>
+    <p class="section-desc">
+      Beyond the coastline, Kanyakumari is blessed with the majestic <strong>Western Ghats</strong> — 
+      a UNESCO World Heritage Site and one of the world's eight most biodiverse regions. The mountains 
+      rise up to <strong>1,829 meters</strong> and are blanketed by 17 distinct forest types.
+    </p>
+
+    <div class="card-grid" style="margin-bottom: 32px;">
+      <div class="card">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/3/36/MOUNTAINS_KANNIYAKUMARI_TN_-_panoramio.jpg"
+             alt="Mountains of Kanyakumari - real photo" class="card-img" loading="lazy">
+        <div class="card-body">
+          <h3>Mountains of Kanyakumari</h3>
+          <p>The southernmost ranges of the Western Ghats rise dramatically from the coastal plains. These mountains form the boundary between Tamil Nadu and Kerala and are home to rich biodiversity.</p>
+        </div>
+      </div>
+      <div class="card">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/7/72/Kalikesam_Waterfalls.jpg"
+             alt="Kalikesam Waterfalls - Kanyakumari forest - real photo" class="card-img" loading="lazy">
+        <div class="card-body">
+          <h3>Kalikesam Waterfalls</h3>
+          <p>Tucked deep inside the Kanyakumari Wildlife Sanctuary, Kalikesam is a pristine forest area with cascading waterfalls. The name means "Kali's abode" and the area is inhabited by the indigenous Kani tribe.</p>
+        </div>
+      </div>
+      <div class="card">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/a/aa/Mukkadal_dam.jpg"
+             alt="Mukkadal dam - Kanyakumari - real photo" class="card-img" loading="lazy">
+        <div class="card-body">
+          <h3>Mukkadal & Kodayar</h3>
+          <p>The upper reaches of Kanyakumari district feature lush shola forests, grassy downs, and reservoirs like Mukkadal and Kodayar — feeding seven rivers that originate in these mountains.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="split" style="margin-top: 16px;">
+      <div>
+        <h3 style="font-size: 22px; margin-bottom: 16px; color: #1a1a2e;">Western Ghats Connection</h3>
+        <p style="font-size: 15px; line-height: 1.8; color: #555;">
+          The <strong>Kanyakumari Wildlife Sanctuary</strong> forms the southernmost part of the 
+          <strong>Agasthiyamalai</strong> range in the Western Ghats. This region is recognized as 
+          a global biodiversity hotspot with <strong>62% of the Western Ghats' endemic plant species</strong> 
+          found here. The sanctuary connects with <strong>Kalakkad-Mundanthurai Tiger Reserve (KMTR)</strong> 
+          and <strong>Neyyar Wildlife Sanctuary (Kerala)</strong>, forming a vital wildlife corridor 
+          spanning over 800 km2.
+        </p>
+        <p style="font-size: 15px; line-height: 1.8; color: #555; margin-top: 12px;">
+          Seven rivers originate from these forests — including the <strong>Thamirabarani</strong> and 
+          <strong>Pahrali</strong> — sustaining millions of people downstream. The elevation ranges from 
+          50m at the coast to <strong>1,829m</strong> in the montane shola forests, creating a remarkable 
+          diversity of habitats in a compact area.
+        </p>
+      </div>
+      <img src="https://upload.wikimedia.org/wikipedia/commons/9/93/Western_Ghats_-_Tirunelveli%2C_Southern_India.jpg"
+           alt="Western Ghats southern India - real photo" class="split-img" style="min-height: 350px;" loading="lazy">
+    </div>
+  </div>
+</section>
+
+<!-- ===== PARALLAX 2 - REAL Kanyakumari Mountains ===== -->
+<section class="parallax-section" style="background-image: url('https://upload.wikimedia.org/wikipedia/commons/3/36/MOUNTAINS_KANNIYAKUMARI_TN_-_panoramio.jpg');">
+  <div class="parallax-overlay"></div>
+  <div>
+    <h2>Nature's Masterpiece</h2>
+    <p>70% tree cover • 402 km2 wildlife sanctuary • 1,140 plant species • 17 forest types</p>
+  </div>
+</section>
+
+<!-- ===== NATURE & BIODIVERSITY ===== -->
+<section id="nature" class="section-light">
+  <div class="section-inner">
+    <span class="section-tag">Wilderness</span>
+    <h2 class="section-title">Biodiversity <span class="highlight">Hotspot</span></h2>
+    <p class="section-desc">
+      Kanyakumari is a biodiversity hotspot within the Western Ghats — one of the world's eight
+      "hottest" biodiversity hotspots. Despite being one of the smallest districts in Tamil Nadu,
+      it has extraordinary ecological wealth.
+    </p>
+
+    <div class="stats-grid" style="color: #1a1a2e;">
+      <div class="stat-card" style="border-color: #ddd; background: #fff;">
+        <div class="num">70%</div>
+        <div class="label" style="color: #666;">Tree Cover</div>
+      </div>
+      <div class="stat-card" style="border-color: #ddd; background: #fff;">
+        <div class="num">402</div>
+        <div class="label" style="color: #666;">km2 Sanctuary</div>
+      </div>
+      <div class="stat-card" style="border-color: #ddd; background: #fff;">
+        <div class="num">1,140</div>
+        <div class="label" style="color: #666;">Plant Species</div>
+      </div>
+      <div class="stat-card" style="border-color: #ddd; background: #fff;">
+        <div class="num">66</div>
+        <div class="label" style="color: #666;">Endemic Species</div>
+      </div>
+      <div class="stat-card" style="border-color: #ddd; background: #fff;">
+        <div class="num">17</div>
+        <div class="label" style="color: #666;">Forest Types</div>
+      </div>
+      <div class="stat-card" style="border-color: #ddd; background: #fff;">
+        <div class="num">7</div>
+        <div class="label" style="color: #666;">Rivers</div>
+      </div>
+    </div>
+
+    <h3 style="font-size: 24px; margin: 48px 0 20px; color: #1a1a2e;">Kanyakumari Wildlife Sanctuary</h3>
+    <p style="font-size: 15px; line-height: 1.8; color: #555; margin-bottom: 32px;">
+      Declared a protected area in February 2008, this 402.39 km2 sanctuary forms the southernmost
+      ranges of the Agasthiyamalai forest tract. It is a designated <strong>tiger habitat</strong>
+      and connects with Kalakkad-Mundanthurai Tiger Reserve (KMTR) and Neyyar Wildlife Sanctuary
+      (Kerala) to form the largest protected forest complex in southern India. Several new species
+      of plants, amphibians, and insects discovered here are found <strong>nowhere else on Earth</strong>.
+    </p>
+
+    <h3 style="font-size: 24px; margin: 40px 0 20px; color: #1a1a2e;">Forest Types (17)</h3>
+    <div class="card-grid" style="margin-bottom: 48px;">
+      <div class="card"><div class="card-body"><h3>Evergreen Forests</h3><p>Southern Hilltop Tropical Evergreen, West Coast Tropical Evergreen, and Tirunelveli Semi-Evergreen — dense, multi-layered canopies at various elevations.</p></div></div>
+      <div class="card"><div class="card-body"><h3>Deciduous Forests</h3><p>Moist & Dry Teak Forests, Southern Moist & Dry Mixed Deciduous — seasonal forests with valuable timber species like teak and Terminalia.</p></div></div>
+      <div class="card"><div class="card-body"><h3>Thorn & Scrub</h3><p>Carnatic Umbrella Thorn, Southern Thorn Forests, and Thorn Scrub — arid-adapted vegetation with Acacia and Euphorbia species.</p></div></div>
+      <div class="card"><div class="card-body"><h3>Grasslands & Bamboo</h3><p>Southern Montane Wet Grasslands (shola-grassland mosaic), Wet Bamboo Brakes — unique high-altitude and riparian ecosystems.</p></div></div>
+    </div>
+
+    <h3 style="font-size: 24px; margin: 40px 0 20px; color: #1a1a2e;">Threatened Medicinal Plants</h3>
+    <table class="data-table">
+      <thead>
+        <tr><th>Status</th><th>Species</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><strong style="color:#d32f2f;">CRITICALLY ENDANGERED</strong></td><td>Cycas circinalis</td></tr>
+        <tr><td><strong style="color:#f57c00;">ENDANGERED</strong></td><td>Artocarpus hirsutus, Canarium strictum, Santalum album (sandalwood), Hydnocarpus macrocarpa, Arenga wightii, Eugenia calcadensis, Hybanthus travancoricus, Phyllanthus singampattiana</td></tr>
+        <tr><td><strong style="color:#fbc02d;">VULNERABLE</strong></td><td>Adenia hondala, Aegle marmelos (bael), Celastrus paniculatus, Gardenia gummifera, Gloriosa superba, Hydnocarpus pentandra, Persea macrantha, Salacia oblonga, Drosera indica, Cayratia pedata</td></tr>
+      </tbody>
+    </table>
+
+    <h3 style="font-size: 24px; margin: 40px 0 20px; color: #1a1a2e;">Wildlife</h3>
+    <div class="card-grid">
+      <div class="card"><div class="card-body"><h3>Mammals</h3><p>Tiger, leopard, Asian elephant, Indian bison (gaur), lion-tailed macaque, Nilgiri tahr, sambar deer, mouse deer, sloth bear, wild boar</p></div></div>
+      <div class="card"><div class="card-body"><h3>Reptiles & Amphibians</h3><p>Indian rock python, king cobra, monitor lizards. Several newly discovered endemic amphibian species found only here.</p></div></div>
+      <div class="card"><div class="card-body"><h3>Unique Finds</h3><p>Bioluminescent mushroom species, 13 species of carnivorous plants (Utricularia & Drosera), and migratory birds from Australia.</p></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== CUISINE ===== -->
+<section class="section-dark">
+  <div class="section-inner">
+    <div class="split">
+      <div class="text-white">
+        <span class="section-tag">Flavours</span>
+        <h2 class="section-title">Coastal <span class="highlight">Cuisine</span></h2>
+        <p class="section-desc">
+          Kanyakumari's cuisine is a delicious marriage of Tamil and Malayali culinary traditions,
+          with seafood taking center stage. The town is a major fishery base in South India,
+          ensuring the freshest catch daily.
+        </p>
+        <ul class="fact-list">
+          <li><strong>Nandu Masala</strong> — Spicy crab preparation, a local signature dish</li>
+          <li><strong>Meen Kuzhambu</strong> — Traditional Tamil fish curry</li>
+          <li><strong>Kottu</strong> — Minced fried paratha with vegetables, egg, or meat</li>
+          <li><strong>Appam</strong> — Rice and coconut pancake (Kerala influence)</li>
+          <li><strong>Avial & Theeyal</strong> — Coconut-based vegetable curries</li>
+          <li><strong>Paazha Sharbat</strong> — Unique mixed fruit juice specialty</li>
+          <li><strong>Tapioca with Fish</strong> — Regional non-vegetarian staple</li>
+        </ul>
+      </div>
+      <img src="https://upload.wikimedia.org/wikipedia/commons/c/c0/Golden_sea_at_sunset_Chothavilai_Beach%2C_Kanyakumari.jpg"
+           alt="Chothavilai Beach - Kanyakumari coastline" class="split-img" style="min-height: 350px;" loading="lazy">
+    </div>
+  </div>
+</section>
+
+<!-- ===== FACTS ===== -->
+<section id="facts" class="section-light">
+  <div class="section-inner">
+    <span class="section-tag">Did You Know?</span>
+    <h2 class="section-title">Unique & <span class="highlight">Fascinating</span></h2>
+    <p class="section-desc">Kanyakumari is full of surprises. Here are some of the most remarkable facts about this extraordinary land.</p>
+
+    <div class="card-grid">
+      <div class="card"><div class="card-body"><h3>Three Oceans Meet</h3><p>Kanyakumari is the only place in India where the Arabian Sea, Bay of Bengal, and Indian Ocean converge at one point — Triveni Sangam.</p></div></div>
+      <div class="card"><div class="card-body"><h3>Sunrise & Sunset</h3><p>The only place on Earth where you can watch both sunrise and sunset from the exact same location.</p></div></div>
+      <div class="card"><div class="card-body"><h3>Lighthouse Nose Ring</h3><p>The goddess idol in Kumari Amman Temple has a ruby nose ring so bright that ships mistook it for a lighthouse and crashed. The sea-facing gate stays closed except for 5 days a year.</p></div></div>
+      <div class="card"><div class="card-body"><h3>Rice Stone Legend</h3><p>The small rice-like stones on the shore are believed to be uncooked wedding rice from the failed marriage of Goddess Kanya Devi.</p></div></div>
+      <div class="card"><div class="card-body"><h3>Kashmir to Kanyakumari</h3><p>The famous phrase describing India's length originates here. Before partition, it was 'Khyber se Kanyakumari'.</p></div></div>
+      <div class="card"><div class="card-body"><h3>Richest District</h3><p>Kanyakumari district has the highest per capita income and HDI in all of Tamil Nadu, and the second-highest population density.</p></div></div>
+      <div class="card"><div class="card-body"><h3>Rich Christian Heritage</h3><p>At 61% Christian, Kanyakumari is unique in Tamil Nadu as a Christian-majority town, with a strong history of missionary influence.</p></div></div>
+      <div class="card"><div class="card-body"><h3>Chithra Pournami</h3><p>On full moon nights in April-May, the sun and moon face each other on the same horizon — a rare astronomical spectacle unique to this latitude.</p></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== GALLERY with REAL photos ===== -->
+<section id="gallery" class="section-dark">
+  <div class="section-inner">
+    <span class="section-tag">Visual Journey</span>
+    <h2 class="section-title">Gallery of <span class="highlight">Wonders</span></h2>
+    <p class="section-desc">Real photographs from Kanyakumari — the Land's End.</p>
+    <div class="gallery">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/c/c5/Vivekananda_Rock_Memorial_Amidst_Blue_and_Green_Ocean.jpg" alt="Vivekananda Rock Memorial - real Kanyakumari photo" loading="lazy">
+      <img src="images/mandapam.jpg" alt="Vivekananda Mandapam - real Kanyakumari photo" loading="lazy">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/9/93/Sunset_Point_Kanyakumari.jpg" alt="Sunset Point - real Kanyakumari photo" loading="lazy">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/4/44/Kanyakumari_sunrise_view.jpg" alt="Sunrise at Kanyakumari - real photo" loading="lazy">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/8/8a/Thiruvalluvar_Statue_Kanyakumari.jpg" alt="Thiruvalluvar Statue - real Kanyakumari photo" loading="lazy">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/c/c0/Golden_sea_at_sunset_Chothavilai_Beach%2C_Kanyakumari.jpg" alt="Chothavilai Beach sunset - real Kanyakumari photo" loading="lazy">
+    </div>
+    <p style="text-align: center; margin-top: 20px; font-size: 13px; color: rgba(255,255,255,0.4);">All photographs are real images of Kanyakumari from Wikimedia Commons (CC BY-SA 4.0)</p>
+  </div>
+</section>
+
+<!-- ===== FOOTER ===== -->
+<section class="section-light">
+  <div class="section-inner" style="padding-top: 40px; padding-bottom: 40px;">
+    <div class="quote-block">
+      <blockquote>"Kanyakumari is where the soul of India meets the sea — a place of eternal sunsets, timeless temples, and the gentle whisper of three oceans."</blockquote>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-logo">Kanya<span>kumari</span></div>
+  <p>Southernmost Tip of Mainland India — The Land's End</p>
+  <p style="margin-top: 8px;">Confluence of the Arabian Sea &bull; Bay of Bengal &bull; Indian Ocean</p>
+  <p style="margin-top: 20px; font-size: 12px;">&copy; 2026 Kanyakumari Reference Guide</p>
+  <p style="font-size: 11px; color: rgba(255,255,255,0.3);">Images: Wikimedia Commons (CC BY-SA 4.0) — Vivekananda Rock Memorial, Sunset Point, Thiruvalluvar Statue, Chothavilai Beach, Sunrise at Kanyakumari</p>
+</footer>
+
+<script>
+  const nav = document.getElementById('navbar');
+  window.addEventListener('scroll', () => {
+    if (window.scrollY > 80) nav.classList.add('scrolled');
+    else nav.classList.remove('scrolled');
+  });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,29 @@
+{
+  "expo": {
+    "name": "TerminalVault",
+    "slug": "TerminalVault",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "backgroundColor": "#0d0d1a"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.terminalvault.app"
+    },
+    "android": {
+      "package": "com.terminalvault.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#0d0d1a",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png"
+      },
+      "permissions": ["INTERNET"]
+    },
+    "plugins": [
+      "expo-dev-client"
+    ]
+  }
+}

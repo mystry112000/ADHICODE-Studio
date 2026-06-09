@@ -1,0 +1,13 @@
+{
+  "name": "jarvis-bun",
+  "version": "1.0.0",
+  "description": "JARVIS AI backend powered by Bun",
+  "main": "server.ts",
+  "scripts": {
+    "start": "bun run server.ts",
+    "dev": "bun --watch run server.ts"
+  },
+  "dependencies": {
+    "openai": "^4.0.0"
+  }
+}

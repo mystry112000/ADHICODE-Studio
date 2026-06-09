@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.env
+*.exe
+*.log
+.DS_Store
+coverage/
+.artifacts/
+__pycache__/
+*.pyc
+*.keystore
+.expo/
+android/
+.vagrant/
