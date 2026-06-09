@@ -2,6 +2,18 @@
 
 > **AI-Powered Development Platform** — Terminal, Tools, Workflows & Skills in one CLI
 
+<p align="center">
+  <img src="https://img.shields.io/github/stars/mystry112000/ADHICODE-Studio?style=for-the-badge&logo=github&color=6366f1" alt="Stars">
+  <img src="https://img.shields.io/github/forks/mystry112000/ADHICODE-Studio?style=for-the-badge&logo=github&color=06b6d4" alt="Forks">
+  <img src="https://img.shields.io/github/license/mystry112000/ADHICODE-Studio?style=for-the-badge&color=22c55e" alt="License">
+  <img src="https://img.shields.io/github/last-commit/mystry112000/ADHICODE-Studio?style=for-the-badge&logo=git&color=f59e0b" alt="Last Commit">
+  <img src="https://img.shields.io/github/repo-size/mystry112000/ADHICODE-Studio?style=for-the-badge&logo=files&color=ef4444" alt="Repo Size">
+  <img src="https://img.shields.io/badge/Bun-1.3.13-black?style=for-the-badge&logo=bun" alt="Bun">
+  <img src="https://img.shields.io/badge/PowerShell-✓-blue?style=for-the-badge&logo=powershell" alt="PowerShell">
+  <img src="https://img.shields.io/badge/Linux-✓-yellow?style=for-the-badge&logo=linux" alt="Linux">
+  <img src="https://img.shields.io/badge/Termux-✓-green?style=for-the-badge&logo=terminal" alt="Termux">
+</p>
+
 ---
 
 ## One-Command Install
@@ -357,22 +369,55 @@ bun run typecheck
 
 ## 🤝 Contributing
 
-1. Fork the repo
-2. Create your feature branch (`git checkout -b feature/amazing`)
-3. Commit changes (`git commit -m 'Add amazing feature'`)
-4. Push to branch (`git push origin feature/amazing`)
-5. Open a Pull Request
+Contributions make this better! Here's how:
+
+1. **⭐ Star the repo** — helps others discover it
+2. **🍴 Fork** it and create a feature branch (`git checkout -b feature/amazing`)
+3. **💬 Open an issue** for bugs or feature requests
+4. **🔀 Submit a PR** with your changes
+5. **📣 Share** with your network
+
+---
+
+## ⭐ Show Your Support
+
+If you find this useful, please **star the repo** — it helps a lot!
+
+<p align="center">
+  <a href="https://github.com/mystry112000/ADHICODE-Studio/stargazers">
+    <img src="https://img.shields.io/github/stars/mystry112000/ADHICODE-Studio?style=for-the-badge&logo=github&color=6366f1" alt="Stars">
+  </a>
+  <a href="https://github.com/mystry112000/ADHICODE-Studio/fork">
+    <img src="https://img.shields.io/github/forks/mystry112000/ADHICODE-Studio?style=for-the-badge&logo=github&color=06b6d4" alt="Forks">
+  </a>
+  <a href="https://github.com/mystry112000/ADHICODE-Studio/issues">
+    <img src="https://img.shields.io/github/issues/mystry112000/ADHICODE-Studio?style=for-the-badge&logo=github&color=f59e0b" alt="Issues">
+  </a>
+</p>
+
+<p align="center">
+  <a href="https://twitter.com/intent/tweet?text=Check%20out%20ADHICODE%20Studio%20-%20an%20AI-powered%20dev%20platform!&url=https://github.com/mystry112000/ADHICODE-Studio">
+    <img src="https://img.shields.io/badge/Tweet-Share-1DA1F2?style=for-the-badge&logo=twitter" alt="Tweet">
+  </a>
+  <a href="https://www.reddit.com/submit?title=ADHICODE%20Studio%20-%20AI%20Dev%20Platform&url=https://github.com/mystry112000/ADHICODE-Studio">
+    <img src="https://img.shields.io/badge/Reddit-Post-FF4500?style=for-the-badge&logo=reddit" alt="Reddit">
+  </a>
+</p>
 
 ---
 
 ## 📄 License
 
-MIT
+MIT — use it, share it, build with it.
 
 ---
 
 <p align="center">
-  Built with ❤️ and <a href="https://bun.sh">Bun</a>
+  <b>ADHICODE Studio</b> — Built with ❤️ and <a href="https://bun.sh">Bun</a>
   <br>
-  <a href="https://github.com/mystry112000/ADHICODE-Studio">GitHub</a>
+  <a href="https://github.com/mystry112000/ADHICODE-Studio">GitHub</a> ·
+  <a href="https://github.com/mystry112000/ADHICODE-Studio/issues">Issues</a> ·
+  <a href="https://github.com/mystry112000/ADHICODE-Studio/releases">Releases</a>
+  <br><br>
+  <sub>If you like this project, <b>star ⭐</b> it to help others find it!</sub>
 </p>
