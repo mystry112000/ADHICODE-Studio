@@ -1,6 +1,6 @@
 #!/usr/bin/env pwsh
 # ADHICODE Studio Installer
-# One-liner: iwr -useb https://github.com/mystry112000/ADHICODE-Studio/releases/latest/download/install.ps1 | iex
+# One-liner: iwr -useb https://raw.githubusercontent.com/mystry112000/ADHICODE-Studio/main/install.ps1 | iex
 
 $RepoUrl = "https://github.com/mystry112000/ADHICODE-Studio"
 $ExeName = "ADHICODE-Studio.exe"
