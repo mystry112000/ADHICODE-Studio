@@ -49,12 +49,29 @@ export async function terminal(opts: TerminalOptions) {
   await terminalRepl(opts)
 }
 
+const TAB_COMMANDS = [
+  "help", "exit", "clear", "ai", "tools", "run",
+  "workflow", "jarvis", "ssh", "code", "ls", "cd", "pwd",
+]
+const TOOL_NAMES = [
+  "format", "lint", "review", "tree", "search",
+  "sysinfo", "process", "disk", "weather", "notify",
+  "shorten", "whois", "headers", "qr",
+  "docker", "gitlog", "deploy", "ports",
+]
+
 async function terminalRepl(opts: TerminalOptions) {
   const readline = await import("readline")
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,
     prompt: `${UI.color("green", "adb> ")}`,
+    completer: (line: string) => {
+      const hits = TAB_COMMANDS.filter((c) => c.startsWith(line))
+      const toolHits = TOOL_NAMES.filter((c) => c.startsWith(line))
+      const all = [...hits, ...toolHits]
+      return [all.length ? all : TAB_COMMANDS, line]
+    },
   })
 
   rl.prompt()

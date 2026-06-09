@@ -9,6 +9,12 @@ const args = process.argv.slice(3)
 async function main() {
   await boot()
 
+  if (cmd === "completions" || cmd === "--completions") {
+    const { bashCompletions, psCompletions } = await import("./completions/scripts")
+    console.log(args[0] === "bash" ? bashCompletions : psCompletions)
+    process.exit(0)
+  }
+
   switch (cmd) {
     case "tools":
       const { listTools } = await import("./cli/tools/registry")
@@ -100,7 +106,8 @@ function showHelp() {
   console.log(`    ${UI.color("green", "server")}          Start API server`)
   console.log(`    ${UI.color("green", "ai <msg>")}        Ask AI directly`)
   console.log(`    ${UI.color("green", "config")}          Show configuration`)
-  console.log(`    ${UI.color("green", "config-set <k> <v>")} Set configuration`)
+    console.log(`    ${UI.color("green", "config-set <k> <v>")} Set configuration`)
+    console.log(`    ${UI.color("green", "completions")}      Generate shell completion script (use: completions powershell/bash)`)
   console.log()
 }
 
