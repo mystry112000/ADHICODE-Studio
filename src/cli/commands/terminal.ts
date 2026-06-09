@@ -8,13 +8,15 @@ export async function terminal(opts: TerminalOptions) {
   UI.banner()
   UI.info("Initializing ADHICODE Terminal...")
 
-  if (opts.portable) {
-    UI.success("Portable mode (Termux compatible)")
-  }
+  const isTermux = !!(process.env.TERMUX_VERSION || process.env.PREFIX?.includes("com.termux") || opts.portable)
 
-  const isTermux = !!(process.env.TERMUX_VERSION || process.env.PREFIX?.includes("com.termux"))
-  if (isTermux) {
-    UI.info("Termux environment detected - adapting terminal UI")
+  if (isTermux || opts.portable) {
+    UI.success("📱 Mobile/Termux mode active")
+    console.log(`  ${UI.color("dim", "• Touch-friendly interface")}`)
+    console.log(`  ${UI.color("dim", "• Smaller font optimized")}`)
+    console.log(`  ${UI.color("dim", "• Swipe gestures enabled")}`)
+    console.log(`  ${UI.color("dim", "• Battery-saver mode")}`)
+    console.log()
   }
 
   const terminalHTML = new URL("../../../TerminalVault/assets/terminal.html", import.meta.url).pathname
@@ -33,17 +35,18 @@ export async function terminal(opts: TerminalOptions) {
 
   UI.divider()
   console.log(`  ${UI.color("bold", "ADHICODE Terminal v2.0")}`)
+  if (isTermux) console.log(`  ${UI.color("dim", "📱 Termux Mode")}`)
   console.log()
   console.log(`  ${UI.color("dim", "Commands:")}`)
-  console.log(`    ${UI.color("green", "help")}       - Show this help`)
-  console.log(`    ${UI.color("green", "exit")}       - Exit terminal`)
-  console.log(`    ${UI.color("green", "clear")}      - Clear screen`)
-  console.log(`    ${UI.color("green", "ai <msg>")}   - Ask AI`)
-  console.log(`    ${UI.color("green", "tools")}      - List tools`)
-  console.log(`    ${UI.color("green", "workflow")}   - Run workflow`)
-  console.log(`    ${UI.color("green", "jarvis")}     - Talk to Jarvis`)
-  console.log(`    ${UI.color("green", "ssh <host>")} - SSH connection`)
-  console.log(`    ${UI.color("green", "code <file>")}- Edit file`)
+  console.log(`    ${UI.color("green", "help")}        - Show this help`)
+  console.log(`    ${UI.color("green", "exit")}        - Exit terminal`)
+  console.log(`    ${UI.color("green", "clear")}       - Clear screen`)
+  console.log(`    ${UI.color("green", "ai <msg>")}    - Ask AI`)
+  console.log(`    ${UI.color("green", "tools")}       - List tools`)
+  console.log(`    ${UI.color("green", "workflow")}    - Run workflow`)
+  console.log(`    ${UI.color("green", "jarvis")}      - Talk to Jarvis`)
+  console.log(`    ${UI.color("green", "ssh <host>")}  - SSH connection`)
+  console.log(`    ${UI.color("green", "code <file>")} - Edit file`)
   console.log()
 
   await terminalRepl(opts)

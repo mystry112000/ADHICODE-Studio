@@ -34,7 +34,15 @@ export class PlatformAdapter {
   private static async initTermux() {
     UI.success("Termux environment configured")
     process.env.TERM = "xterm-256color"
-    process.env.SHELL = "/data/data/com.termux/files/usr/bin/bash"
+    const termuxShell = "/data/data/com.termux/files/usr/bin/bash"
+    process.env.SHELL = termuxShell
+    // Optimize for mobile
+    process.env.ADHICODE_PORTABLE = "1"
+    process.env.ADHICODE_TERMUX = "1"
+    // Set smaller default font for mobile
+    process.env.ADHICODE_FONT_SIZE = "12"
+    // Use touch-friendly prompt
+    process.env.ADHICODE_TOUCH = "1"
   }
 
   private static async initWindows() {

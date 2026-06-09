@@ -172,7 +172,47 @@ Opens a full-featured terminal with:
 | Windows | ✅ Full support |
 | Linux | ✅ Full support |
 | macOS | ✅ Full support |
-| Android (Termux) | ✅ Via `--portable` flag |
+| Android (Termux) | ✅ Full support via `--portable` flag |
+
+### 📱 Termux (Android) Usage
+
+Install Termux from [F-Droid](https://f-droid.org/packages/com.termux/), then:
+
+```bash
+pkg update && pkg upgrade
+pkg install nodejs-lts
+npm install -g bun
+
+# Install ADHICODE Studio
+curl -fsSL https://github.com/mystry112000/ADHICODE-Studio/releases/latest/download/install.sh | bash
+
+# Run with portable flag for mobile optimization
+adhicode-studio terminal --portable
+```
+
+Termux-specific features:
+- **Auto-detection** — ADHICODE detects Termux via `$TERMUX_VERSION` env
+- **Touch-friendly** — Larger tap targets, swipe gestures
+- **Battery optimized** — Reduced polling, efficient rendering
+- **SSH ready** — Pre-configured for Termux SSH connections
+- **Smaller font** — Optimized for mobile screen sizes
+- **Skill available**: `adhicode-studio skill termux-optimize`
+
+---
+
+## 🧠 Skills (9)
+
+| Skill | Description |
+|-------|-------------|
+| `code-review` | AI-powered code review |
+| `project-init` | Scaffold full-stack projects |
+| `fullstack-dev` | Full-stack development toolkit |
+| `terminal-pro` | Enhanced terminal with themes |
+| `termux-optimize` | Optimize for Termux Android |
+| `voice-control` | Jarvis voice AI integration |
+| `workflow-designer` | Create custom automation |
+| `database-pro` | Database management tools |
+| `security-audit` | Security scanning |
 
 ---
 
