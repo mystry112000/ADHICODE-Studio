@@ -1,4 +1,8 @@
 import { UI } from "../ui"
+import { runTool } from "../tools/registry"
+import { execSync } from "node:child_process"
+import { existsSync } from "node:fs"
+import { join } from "node:path"
 
 export type WorkflowName = "analyze" | "build" | "deploy" | "test" | "review" | "scaffold" | "audit"
 
@@ -56,11 +60,46 @@ const workflows: Workflow[] = [
   },
   {
     name: "scaffold",
-    description: "Scaffold a new project from template",
+    description: "Scaffold a new project from template (usage: workflow scaffold <template> <name>)",
     steps: [
-      { name: "Selecting template", action: async () => UI.success("Template selected") },
-      { name: "Creating project structure", action: async () => UI.success("Structure created") },
-      { name: "Installing dependencies", action: async () => UI.success("Project ready") },
+      {
+        name: "Selecting template and project name", action: async () => {
+          const { getTemplate, listTemplates } = await import("../tools/scaffold")
+          listTemplates()
+          const template = process.argv[4] || "fullstack"
+          const projectName = process.argv[5] || "my-app"
+          UI.info(`Selected template: ${template}, project: ${projectName}`)
+        },
+      },
+      {
+        name: "Creating project structure", action: async () => {
+          const template = process.argv[4] || "fullstack"
+          const projectName = process.argv[5] || "my-app"
+          await runTool("scaffold", [template, projectName])
+        },
+      },
+      {
+        name: "Installing dependencies", action: async () => {
+          const projectName = process.argv[5] || "my-app"
+          if (!projectName || projectName === "my-app") {
+            UI.warn("Skipping auto-install (no project name specified)")
+            UI.info(`Run manually: cd ${projectName} && bun install`)
+            return
+          }
+          const fullPath = join(process.cwd(), projectName)
+          if (existsSync(join(fullPath, "package.json"))) {
+            UI.info(`Installing dependencies in ${projectName}...`)
+            try {
+              execSync("bun install", { cwd: fullPath, stdio: "inherit" })
+              UI.success("Dependencies installed successfully!")
+            } catch {
+              UI.warn("bun install failed — check your Bun installation")
+            }
+          } else {
+            UI.warn("No package.json found — skipping install")
+          }
+        },
+      },
     ],
   },
   {

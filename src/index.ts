@@ -109,6 +109,9 @@ function showHelp() {
     console.log(`    ${UI.color("green", "config-set <k> <v>")} Set configuration`)
     console.log(`    ${UI.color("green", "completions")}      Generate shell completion script (use: completions powershell/bash)`)
   console.log()
+  console.log("  Templates: fullstack, frontend, backend")
+  console.log(`    ${UI.color("green", "run scaffold <template> <name>")} Generate a full project`)
+  console.log()
 }
 
 main().catch((err) => {

@@ -1,6 +1,7 @@
 import { registerTool } from "./registry"
 import { execSync, spawnSync } from "child_process"
 import { UI } from "../ui"
+import { templates, getTemplate, listTemplates } from "./scaffold"
 
 export function registerFullstackTools() {
   registerTool({
@@ -115,6 +116,51 @@ export function registerFullstackTools() {
       execSync(`copy package.json "${dir}/" 2>nul || cp package.json "${dir}/"`, { stdio: "ignore" })
       execSync(`copy bun.lock "${dir}/" 2>nul || cp bun.lock "${dir}/"`, { stdio: "ignore" })
       UI.success(`Snapshot saved to ${dir}/`)
+    },
+  })
+
+  registerTool({
+    name: "scaffold",
+    description: "Scaffold a full-stack/frontend/backend project from template",
+    category: "fullstack",
+    run: async (args) => {
+      const templateName = args[0]
+      const projectName = args[1]
+
+      if (!templateName || templateName === "--list") {
+        listTemplates()
+        return
+      }
+
+      if (!projectName) {
+        UI.error("Usage: run scaffold <template> <project-name>")
+        return
+      }
+
+      const template = getTemplate(templateName)
+      if (!template) {
+        UI.error(`Template '${templateName}' not found.`)
+        listTemplates()
+        return
+      }
+
+      const { writeProject } = await import("./scaffold/templates")
+      const root = await writeProject(template, projectName, process.cwd())
+      UI.success(`Project '${projectName}' created at ${root}`)
+      UI.divider()
+      console.log("  Next steps:")
+      console.log(`    cd ${projectName}`)
+      if (templateName === "fullstack") {
+        console.log("    bun install")
+        console.log("    bun run dev")
+      } else if (templateName === "frontend") {
+        console.log("    bun install")
+        console.log("    bun run dev")
+      } else if (templateName === "backend") {
+        console.log("    bun install")
+        console.log("    bun run dev")
+      }
+      UI.divider()
     },
   })
 }

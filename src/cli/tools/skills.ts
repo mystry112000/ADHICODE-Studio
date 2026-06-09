@@ -33,22 +33,17 @@ register({
 
 register({
   name: "project-init",
-  description: "Scaffold full-stack projects (React, API, CLI, mobile)",
+  description: "Scaffold full-stack projects (fullstack, frontend, backend)",
   category: "development",
   run: async () => {
     UI.info("Project Initialization Skill")
     UI.divider()
     console.log("  Available templates:")
-    console.log("  • fullstack  - React + Hono API + DB + Docker")
-    console.log("  • web        - React + Vite + TailwindCSS")
-    console.log("  • api        - Bun + Hono + Drizzle ORM")
-    console.log("  • cli        - Bun CLI tool with yargs")
-    console.log("  • mobile     - React Native (Expo)")
-    console.log("  • lib        - TypeScript library")
-    console.log("  • nextapp    - Next.js full-stack app")
-    console.log("  • express    - Express.js API server")
+    console.log("  • fullstack  - React 19 + Vite + Tailwind v4 + Bun/Hono API + Docker")
+    console.log("  • frontend   - React 19 + Vite + Tailwind v4 (standalone)")
+    console.log("  • backend    - Bun + Hono + Drizzle ORM + SQLite")
     console.log()
-    UI.info("Usage: run scaffold <type> <name>")
+    UI.info("Usage: run scaffold <template> <project-name>")
   },
 })
 
@@ -149,8 +144,7 @@ register({
     console.log("  • GitHub Actions CI/CD (run github-actions ci|deploy)")
     console.log("  • Web search (run websearch <query>)")
     console.log("  • Project snapshots (run restore <name>)")
-    UI.divider()
-    UI.info("Full-stack templates coming in next update!")
+    console.log("  • Project scaffolding (run scaffold <template> <name>)")
   },
 })
 
