@@ -121,46 +121,41 @@ export function registerFullstackTools() {
 
   registerTool({
     name: "scaffold",
-    description: "Scaffold a full-stack/frontend/backend project from template",
+    description: "Scaffold a project — by prompt or template (e.g. 'run scaffold a blog with react and tailwind')",
     category: "fullstack",
     run: async (args) => {
-      const templateName = args[0]
-      const projectName = args[1]
+      const firstArg = args[0] || ""
+      const secondArg = args[1] || ""
 
-      if (!templateName || templateName === "--list") {
+      if (!firstArg || firstArg === "--list") {
         listTemplates()
+        UI.info("Or describe what you want to build:")
+        console.log(`  ${UI.color("green", "run scaffold")} ${UI.color("dim", '"create a blog with react and tailwind"')}`)
         return
       }
 
-      if (!projectName) {
-        UI.error("Usage: run scaffold <template> <project-name>")
+      const knownTemplates = ["fullstack", "frontend", "backend"]
+
+      if (knownTemplates.includes(firstArg) && secondArg) {
+        // Classic mode: template + name
+        const template = getTemplate(firstArg)
+        if (!template) { UI.error(`Template '${firstArg}' not found.`); return }
+        const { writeProject } = await import("./scaffold/templates")
+        const root = await writeProject(template, secondArg, process.cwd())
+        UI.success(`Project '${secondArg}' created at ${root}`)
+        UI.divider()
+        console.log("  Next steps:")
+        console.log(`    cd ${secondArg}`)
+        console.log("    bun install")
+        console.log("    bun run dev")
+        UI.divider()
         return
       }
 
-      const template = getTemplate(templateName)
-      if (!template) {
-        UI.error(`Template '${templateName}' not found.`)
-        listTemplates()
-        return
-      }
-
-      const { writeProject } = await import("./scaffold/templates")
-      const root = await writeProject(template, projectName, process.cwd())
-      UI.success(`Project '${projectName}' created at ${root}`)
-      UI.divider()
-      console.log("  Next steps:")
-      console.log(`    cd ${projectName}`)
-      if (templateName === "fullstack") {
-        console.log("    bun install")
-        console.log("    bun run dev")
-      } else if (templateName === "frontend") {
-        console.log("    bun install")
-        console.log("    bun run dev")
-      } else if (templateName === "backend") {
-        console.log("    bun install")
-        console.log("    bun run dev")
-      }
-      UI.divider()
+      // Prompt mode: full sentence describing what to build
+      const prompt = args.join(" ")
+      const { runPromptScaffold } = await import("./scaffold/prompt-scaffold")
+      await runPromptScaffold(prompt)
     },
   })
 }

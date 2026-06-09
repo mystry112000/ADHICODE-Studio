@@ -92,9 +92,23 @@ adhicode-studio completions        # Generate tab-completion script
 
 ## 💻 Usage Examples
 
-### Web Search
+### AI Prompt Scaffolding (Just describe what you want)
 ```bash
-adhicode-studio run websearch "latest AI technology 2026"
+adhicode-studio run scaffold "create a blog with react and tailwind"
+# → Detects FRONTEND → Creates blog-react-tailwind project
+
+adhicode-studio run scaffold "build a rest api with hono and drizzle"
+# → Detects BACKEND → Creates rest project with Hono API + Drizzle ORM
+
+adhicode-studio run scaffold "make a fullstack dashboard with react frontend and hono api"
+# → Detects FULLSTACK → Creates monorepo with both frontend and backend
+```
+
+You can also use classic mode:
+```bash
+adhicode-studio run scaffold frontend my-app
+adhicode-studio run scaffold fullstack my-app
+adhicode-studio run scaffold backend my-api
 ```
 
 ### Create a React Component
