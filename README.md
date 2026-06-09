@@ -2,13 +2,28 @@
 
 > **AI-Powered Development Platform** — Terminal, Tools, Workflows & Skills in one CLI
 
-One command to install:
+---
 
-```bash
-curl -fsSL https://github.com/mystry112000/ADHICODE-Studio/releases/latest/download/install.ps1 | powershell -c -
+## One-Command Install
+
+### Windows (PowerShell)
+```powershell
+iwr -useb https://github.com/mystry112000/ADHICODE-Studio/releases/latest/download/install.ps1 | iex
 ```
 
-Or download the latest release from the [Releases page](https://github.com/mystry112000/ADHICODE-Studio/releases).
+### Linux / macOS (Bash)
+```bash
+curl -fsSL https://github.com/mystry112000/ADHICODE-Studio/releases/latest/download/install.sh | bash
+```
+
+### Termux (Android)
+```bash
+pkg install nodejs-lts && npm install -g bun && curl -fsSL https://github.com/mystry112000/ADHICODE-Studio/releases/latest/download/install.sh | bash
+```
+
+After install, run: `adhicode-studio --help`
+
+> Or download the latest release from the [Releases page](https://github.com/mystry112000/ADHICODE-Studio/releases).
 
 ---
 
@@ -46,19 +61,27 @@ Then open `http://localhost:4096` in your browser.
 
 ## 📦 Quick Start
 
-### Option 1: One-liner Install (Windows PowerShell)
-
+### Windows
 ```powershell
 iwr -useb https://github.com/mystry112000/ADHICODE-Studio/releases/latest/download/install.ps1 | iex
 ```
 
-### Option 2: Manual Install
+### Linux / macOS
+```bash
+curl -fsSL https://github.com/mystry112000/ADHICODE-Studio/releases/latest/download/install.sh | bash
+```
 
+### Termux (Android)
+```bash
+pkg install nodejs-lts && npm install -g bun && curl -fsSL https://github.com/mystry112000/ADHICODE-Studio/releases/latest/download/install.sh | bash
+```
+
+### Manual Install
 1. Download `ADHICODE-Studio.exe` from [Releases](https://github.com/mystry112000/ADHICODE-Studio/releases)
-2. Add it to your PATH or run directly
-3. Run `adhicode-studio --help` to get started
+2. Add it to your PATH
+3. Run `adhicode-studio --help`
 
-### Option 3: Build from Source
+### Build from Source
 
 ```bash
 # Prerequisites: Install Bun (https://bun.sh)
