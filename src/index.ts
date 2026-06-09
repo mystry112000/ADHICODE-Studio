@@ -7,13 +7,13 @@ const cmd = process.argv[2]
 const args = process.argv.slice(3)
 
 async function main() {
-  await boot()
-
   if (cmd === "completions" || cmd === "--completions") {
     const { bashCompletions, psCompletions } = await import("./completions/scripts")
     console.log(args[0] === "bash" ? bashCompletions : psCompletions)
     process.exit(0)
   }
+
+  await boot()
 
   switch (cmd) {
     case "tools":

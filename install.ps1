@@ -69,11 +69,11 @@ if ($userPath -notlike "*$InstallDir*") {
 # Enable tab completion
 Write-Host "⬇ Enabling tab completion..." -ForegroundColor Yellow
 try {
-    $completionScript = & "$InstallDir\$ExeName" completions 2>&1 | Out-String
+    $comp = & "$InstallDir\$ExeName" completions powershell 2>$null
     $profilePath = $PROFILE.CurrentUserAllHosts
     $profileDir = Split-Path $profilePath -Parent
     New-Item -ItemType Directory -Path $profileDir -Force | Out-Null
-    Add-Content -Path $profilePath -Value "`n# ADHICODE Studio completions`n$completionScript" -Force
+    Add-Content -Path $profilePath -Value "`n# ADHICODE Studio completions`n$comp" -Force
     Write-Host "✔ Tab completion enabled" -ForegroundColor Green
 } catch {
     Write-Host "⚠ Could not enable tab completion automatically" -ForegroundColor Yellow
